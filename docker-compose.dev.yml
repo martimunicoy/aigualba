@@ -25,7 +25,10 @@ services:
     depends_on:
       - backend
     environment:
-      BACKEND_URL: ${DEV_BACKEND_URL}
+      BACKEND_URL: http://backend:8000
+      DASH_DEBUG: 1
+    volumes:
+      - ./frontend:/app
     ports:
       - "8051:8050"
 

@@ -38,3 +38,5 @@ services:
       BACKEND_URL: ${BACKEND_URL}
     ports:
       - "8050:8050"
+    volumes:
+      - ./frontend:/app/frontend

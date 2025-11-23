@@ -1,2 +1,5 @@
 dash
 requests
+plotly
+pandas
+numpy

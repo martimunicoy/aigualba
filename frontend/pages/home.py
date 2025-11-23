@@ -1,0 +1,202 @@
+from dash import html, dcc
+import requests
+import os
+
+def create_home_page():
+    """Create the home page layout"""
+    return html.Div([
+        # Hero Section with Image and Overlay Content
+        html.Div([
+            # Background Image
+            html.Img(src='/assets/images/3c7ac384742589.5d66896467ca0.jpg', 
+                     alt='Photography by Rafael Aguilera Moyano',
+                     style={
+                         'width': '100vw', 
+                         'maxWidth': '1200px',
+                         'height': '500px', 
+                         'objectFit': 'cover', 
+                         'display': 'block',
+                         'position': 'absolute',
+                         'top': '0',
+                         'left': '50%',
+                         'transform': 'translateX(-50%)',
+                         'zIndex': '1',
+                         'borderRadius': '10px', 
+
+                     }),
+            
+            # Overlay Content
+            html.Div([
+                # Welcome Title
+                html.H1("Benvingut a AiGualba!", 
+                        style={
+                            'fontSize': '3.5rem', 
+                            'marginBottom': '2rem', 
+                            'fontWeight': '300',
+                            'textAlign': 'center',
+                            'color': 'white',
+                            'textShadow': '2px 2px 4px rgba(0,0,0,0.7)'
+                        }),
+                
+                # Description
+                html.P("Monitoritza i segueix els paràmetres del sistema públic d'aigua del municipi de Gualba", 
+                       style={
+                           'fontSize': '1.2rem', 
+                           'marginBottom': '2rem', 
+                           'textAlign': 'center',
+                           'maxWidth': '800px',
+                           'margin': '0 auto 2rem auto',
+                           'color': 'white',
+                           'textShadow': '1px 1px 2px rgba(0,0,0,0.7)'
+                       }),
+                
+                # Buttons
+                html.Div([
+                    html.Button("Explora les dades", 
+                               id="btn-browse",
+                               className="hero-btn-primary",
+                               style={
+                                   'backgroundColor': '#e74c3c', 
+                                   'color': 'white', 
+                                   'border': 'none', 
+                                   'padding': '12px 24px', 
+                                   'borderRadius': '6px', 
+                                   'fontSize': '1rem', 
+                                   'cursor': 'pointer',
+                                   'marginRight': '20px',
+                                   'boxShadow': '0 4px 8px rgba(0,0,0,0.3)'
+                               }),
+                    html.Button("Aporta noves dades", 
+                               id="btn-submit",
+                               className="hero-btn-secondary",
+                               style={
+                                   'backgroundColor': '#3498db', 
+                                   'color': 'white', 
+                                   'border': 'none', 
+                                   'padding': '12px 24px', 
+                                   'borderRadius': '6px', 
+                                   'fontSize': '1rem', 
+                                   'cursor': 'pointer',
+                                   'boxShadow': '0 4px 8px rgba(0,0,0,0.3)'
+                               })
+                ], style={'textAlign': 'center', 'marginTop': '2rem'})
+            ], style={
+                'position': 'absolute',
+                'top': '0',
+                'left': '50%',
+                'transform': 'translateX(-50%)',
+                'zIndex': '2',
+                'display': 'flex',
+                'flexDirection': 'column',
+                'justifyContent': 'center',
+                'alignItems': 'center',
+                'width': '100vw',
+                'maxWidth': '1200px',
+                'height': '500px',
+                'borderRadius': '10px',
+                'background': 'rgba(0,0,0,0.3)'  # Dark overlay for better text readability
+            }),
+            
+            # Photo credit - positioned over the image
+            html.Div([
+                html.P("Foto: Rafael Aguilera Moyano", 
+                       style={
+                           'fontSize': '0.8rem', 
+                           'opacity': '0.8',
+                           'textAlign': 'right',
+                           'fontStyle': 'italic',
+                           'color': 'white',
+                           'textShadow': '1px 1px 2px rgba(0,0,0,0.7)',
+                           'margin': '0',
+                           'padding': '0 20px 10px 0'
+                       })
+            ], style={
+                'position': 'absolute',
+                'bottom': '0',
+                'right': '0',
+                'left': '0',
+                'zIndex': '3',
+                'maxWidth': '1200px',
+                'width': '100vw',
+                'margin': '0 auto',
+                'transform': 'translateX(0)'
+            })
+        ], style={
+            'position': 'relative',
+            'height': '500px',
+            'marginBottom': '3rem'
+        }),
+        
+        # Live Data Section
+        html.Div([
+            html.H2("Paràmetres en temps real", 
+                   style={
+                       'color': '#2c3e50', 
+                       'fontSize': '2rem', 
+                       'marginBottom': '2rem', 
+                       'textAlign': 'center'
+                   }),
+            dcc.Interval(id='interval-home', interval=30*1000, n_intervals=0),
+            html.Div(id='live-parameters', style={
+                'display': 'flex', 
+                'gap': '2rem', 
+                'justifyContent': 'center', 
+                'flexWrap': 'wrap'
+            })
+        ], style={
+            'backgroundColor': 'white', 
+            'margin': '2rem auto', 
+            'padding': '3rem 0', 
+            'borderRadius': '10px', 
+            'boxShadow': '0 4px 20px rgba(0,0,0,0.1)', 
+            'maxWidth': '1200px',
+            'width': '100vw'
+        }),
+
+        # Information Section
+        html.Div([
+            html.Div([
+                html.H3("Què monitoritgem?", style={'color': '#2c3e50', 'marginBottom': '1rem'}),
+                html.P("Seguim els paràmetres clau de la qualitat de l'aigua per garantir un subministrament segur i de qualitat."),
+                html.Ul([
+                    html.Li("Nivell de pH - Equilibri àcid/alcalí"),
+                    html.Li("Temperatura - Lectures de temperatura de l'aigua"),
+                    html.Li("Turbiditat - Mesures de claredat de l'aigua"),
+                    html.Li("Oxigen dissolt"),
+                    html.Li("Composició química")
+                ])
+            ], style={
+                'backgroundColor': 'white',
+                'padding': '2rem',
+                'borderRadius': '10px',
+                'boxShadow': '0 4px 20px rgba(0,0,0,0.1)',
+                'flex': '1',
+                'minWidth': '300px'
+            }),
+            
+            html.Div([
+                html.H3("Com participar?", style={'color': '#2c3e50', 'marginBottom': '1rem'}),
+                html.P("La participació ciutadana és clau per mantenir un control exhaustiu de la qualitat de l'aigua."),
+                html.Ul([
+                    html.Li("Consulta les dades en temps real"),
+                    html.Li("Aporta noves mesures des del teu punt de recollida"),
+                    html.Li("Reporta incidències o anomalies"),
+                    html.Li("Col·labora amb la comunitat científica local")
+                ])
+            ], style={
+                'backgroundColor': 'white',
+                'padding': '2rem',
+                'borderRadius': '10px',
+                'boxShadow': '0 4px 20px rgba(0,0,0,0.1)',
+                'flex': '1',
+                'minWidth': '300px'
+            })
+        ], style={
+            'display': 'flex', 
+            'gap': '2rem', 
+            'maxWidth': '1200px', 
+            'margin': '2rem auto', 
+            'padding': '0 1rem',
+            'flexWrap': 'wrap'
+        })
+    ])
