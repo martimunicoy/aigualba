@@ -1,21 +1,29 @@
 from fastapi import FastAPI
-import psycopg2
-import os
+from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI()
+from routers import parameters_router, samples_router
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+app = FastAPI(
+    title="Aigualba API", 
+    description="API for water quality management",
+    version="1.0.0"
+)
 
-def get_db_connection():
-    conn = psycopg2.connect(DATABASE_URL)
-    return conn
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify exact origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.get("/api/parameters")
-def read_parameters():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT name, value, updated_at FROM parameters;")
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
-    return [{"name": r[0], "value": r[1], "updated_at": r[2]} for r in rows]
+# Include routers
+app.include_router(parameters_router)
+app.include_router(samples_router)
+
+
+@app.get("/api/health")
+def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "message": "Aigualba API is running"}

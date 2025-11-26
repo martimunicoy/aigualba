@@ -38,6 +38,20 @@ def create_home_page():
                             'textShadow': '2px 2px 4px rgba(0,0,0,0.7)'
                         }),
                 
+                # Logo
+                html.Div([
+                    html.Img(src='/assets/images/logo2.png', 
+                             alt='AiGualba Logo',
+                             style={
+                                 'height': '80px',
+                                 'width': 'auto',
+                                 'filter': 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))'
+                             })
+                ], style={
+                    'textAlign': 'center',
+                    'margin': '0 0 1.5rem 0'
+                }),
+                
                 # Description
                 html.P("Monitoritza i segueix els paràmetres del sistema públic d'aigua del municipi de Gualba", 
                        style={
@@ -156,7 +170,7 @@ def create_home_page():
         # Information Section
         html.Div([
             html.Div([
-                html.H3("Què monitoritgem?", style={'color': '#2c3e50', 'marginBottom': '1rem'}),
+                html.H3("Què monitoritgem?"),
                 html.P("Seguim els paràmetres clau de la qualitat de l'aigua per garantir un subministrament segur i de qualitat."),
                 html.Ul([
                     html.Li("Nivell de pH - Equilibri àcid/alcalí"),
@@ -165,17 +179,10 @@ def create_home_page():
                     html.Li("Oxigen dissolt"),
                     html.Li("Composició química")
                 ])
-            ], style={
-                'backgroundColor': 'white',
-                'padding': '2rem',
-                'borderRadius': '10px',
-                'boxShadow': '0 4px 20px rgba(0,0,0,0.1)',
-                'flex': '1',
-                'minWidth': '300px'
-            }),
+            ], className='info-card'),
             
             html.Div([
-                html.H3("Com participar?", style={'color': '#2c3e50', 'marginBottom': '1rem'}),
+                html.H3("Com participar?"),
                 html.P("La participació ciutadana és clau per mantenir un control exhaustiu de la qualitat de l'aigua."),
                 html.Ul([
                     html.Li("Consulta les dades en temps real"),
@@ -183,20 +190,6 @@ def create_home_page():
                     html.Li("Reporta incidències o anomalies"),
                     html.Li("Col·labora amb la comunitat científica local")
                 ])
-            ], style={
-                'backgroundColor': 'white',
-                'padding': '2rem',
-                'borderRadius': '10px',
-                'boxShadow': '0 4px 20px rgba(0,0,0,0.1)',
-                'flex': '1',
-                'minWidth': '300px'
-            })
-        ], style={
-            'display': 'flex', 
-            'gap': '2rem', 
-            'maxWidth': '1200px', 
-            'margin': '2rem auto', 
-            'padding': '0 1rem',
-            'flexWrap': 'wrap'
-        })
+            ], className='info-card')
+        ], className='info-section')
     ])

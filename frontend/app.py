@@ -12,7 +12,7 @@ from pages.home import create_home_page
 from pages.about import create_about_page
 from pages.browse import create_browse_page
 from pages.submit import create_submit_page
-from utils.helpers import get_backend_url, fetch_parameters, create_parameter_card, create_data_table
+from utils.helpers import get_backend_url, fetch_parameters, create_parameter_card, create_data_table, submit_sample_data, validate_sample_data
 
 # Initialize Dash app
 app = dash.Dash(__name__, suppress_callback_exceptions=True, assets_folder='assets')
@@ -125,6 +125,155 @@ def navigate_from_buttons(browse_clicks, submit_clicks, current_path):
     elif button_id == 'btn-submit' and submit_clicks and submit_clicks > 0:
         return '/submit'
     return dash.no_update
+
+# Mobile menu toggle callback
+@app.callback(
+    [Output('nav-menu', 'className'),
+     Output('mobile-menu-toggle', 'className')],
+    [Input('mobile-menu-toggle', 'n_clicks')],
+    [State('nav-menu', 'className'),
+     State('mobile-menu-toggle', 'className')],
+    prevent_initial_call=True
+)
+def toggle_mobile_menu(n_clicks, nav_menu_class, toggle_class):
+    if n_clicks is None:
+        return 'nav-menu', 'mobile-menu-toggle'
+    
+    # Toggle the active class
+    if nav_menu_class and 'active' in nav_menu_class:
+        return 'nav-menu', 'mobile-menu-toggle'
+    else:
+        return 'nav-menu active', 'mobile-menu-toggle active'
+
+# Callback for sample submission
+@app.callback(
+    [Output('submit-sample-status', 'children'),
+     Output('validation-alert', 'children')],
+    [Input('submit-sample-button', 'n_clicks')],
+    [State('sample-date', 'date'),
+     State('punt-mostreig', 'value'),
+     State('temperatura', 'value'),
+     State('ph', 'value'),
+     State('conductivitat-20c', 'value'),
+     State('terbolesa', 'value'),
+     State('color', 'value'),
+     State('olor', 'value'),
+     State('sabor', 'value'),
+     State('clor-lliure', 'value'),
+     State('clor-total', 'value'),
+     State('recompte-escherichia-coli', 'value'),
+     State('recompte-enterococ', 'value'),
+     State('recompte-microorganismes-aerobis-22c', 'value'),
+     State('recompte-coliformes-totals', 'value'),
+     State('acid-monocloroacetic', 'value'),
+     State('acid-dicloroacetic', 'value'),
+     State('acid-tricloroacetic', 'value'),
+     State('acid-monobromoacetic', 'value'),
+     State('acid-dibromoacetic', 'value')],
+    prevent_initial_call=True
+)
+def handle_sample_submission(n_clicks, sample_date, punt_mostreig, temperatura, ph, conductivitat_20c,
+                           terbolesa, color, olor, sabor, clor_lliure, clor_total,
+                           recompte_escherichia_coli, recompte_enterococ, recompte_microorganismes_aerobis_22c,
+                           recompte_coliformes_totals, acid_monocloroacetic, acid_dicloroacetic,
+                           acid_tricloroacetic, acid_monobromoacetic, acid_dibromoacetic):
+    if not n_clicks or n_clicks == 0:
+        return dash.no_update, dash.no_update
+    
+    # Prepare sample data
+    sample_data = {
+        'data': sample_date,
+        'punt_mostreig': punt_mostreig,
+        'temperatura': temperatura,
+        'ph': ph,
+        'conductivitat_20c': conductivitat_20c,
+        'terbolesa': terbolesa,
+        'color': color,
+        'olor': olor,
+        'sabor': sabor,
+        'clor_lliure': clor_lliure,
+        'clor_total': clor_total,
+        'recompte_escherichia_coli': recompte_escherichia_coli,
+        'recompte_enterococ': recompte_enterococ,
+        'recompte_microorganismes_aerobis_22c': recompte_microorganismes_aerobis_22c,
+        'recompte_coliformes_totals': recompte_coliformes_totals,
+        'acid_monocloroacetic': acid_monocloroacetic,
+        'acid_dicloroacetic': acid_dicloroacetic,
+        'acid_tricloroacetic': acid_tricloroacetic,
+        'acid_monobromoacetic': acid_monobromoacetic,
+        'acid_dibromoacetic': acid_dibromoacetic
+    }
+    
+    # Validate data
+    validation = validate_sample_data(sample_data)
+    
+    # Create validation alert
+    validation_alert = []
+    if validation['errors']:
+        validation_alert.append(
+            html.Div([
+                html.H5("Errors de validació:", style={'color': '#d32f2f', 'marginBottom': '0.5rem'}),
+                html.Ul([html.Li(error) for error in validation['errors']], 
+                       style={'color': '#d32f2f', 'margin': '0'})
+            ], style={
+                'backgroundColor': '#ffebee',
+                'border': '1px solid #f44336',
+                'borderRadius': '6px',
+                'padding': '1rem',
+                'marginBottom': '1rem'
+            })
+        )
+    
+    if validation['warnings']:
+        validation_alert.append(
+            html.Div([
+                html.H5("Avisos:", style={'color': '#f57c00', 'marginBottom': '0.5rem'}),
+                html.Ul([html.Li(warning) for warning in validation['warnings']], 
+                       style={'color': '#f57c00', 'margin': '0'})
+            ], style={
+                'backgroundColor': '#fff3e0',
+                'border': '1px solid #ff9800',
+                'borderRadius': '6px',
+                'padding': '1rem',
+                'marginBottom': '1rem'
+            })
+        )
+    
+    # If there are validation errors, don't submit
+    if validation['errors']:
+        return (
+            html.Div("Si us plau, corregeix els errors de validació abans d'enviar.", 
+                    style={'color': '#d32f2f', 'fontWeight': '600'}),
+            validation_alert
+        )
+    
+    # Submit data
+    result = submit_sample_data(BACKEND_URL, sample_data)
+    
+    if result['success']:
+        success_message = html.Div([
+            html.H5("✓ Mostra enviada correctament!", style={'color': '#2e7d32', 'marginBottom': '0.5rem'}),
+            html.P(f"ID de la mostra: {result['data'].get('id', 'N/A')}", style={'margin': '0'})
+        ], style={
+            'backgroundColor': '#e8f5e8',
+            'border': '1px solid #4caf50',
+            'borderRadius': '6px',
+            'padding': '1rem',
+            'color': '#2e7d32'
+        })
+        return success_message, validation_alert
+    else:
+        error_message = html.Div([
+            html.H5("Error en enviar la mostra", style={'color': '#d32f2f', 'marginBottom': '0.5rem'}),
+            html.P(f"Detall: {result['error']}", style={'margin': '0'})
+        ], style={
+            'backgroundColor': '#ffebee',
+            'border': '1px solid #f44336',
+            'borderRadius': '6px',
+            'padding': '1rem',
+            'color': '#d32f2f'
+        })
+        return error_message, validation_alert
 
 if __name__ == "__main__":
     debug_flag = os.getenv("DASH_DEBUG", "")

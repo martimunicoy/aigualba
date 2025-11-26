@@ -1,6 +1,7 @@
 import requests
 import os
 from dash import html
+from datetime import datetime
 
 def get_backend_url():
     """Get the backend URL from environment variables"""
@@ -14,6 +15,68 @@ def fetch_parameters(backend_url):
     except Exception as e:
         print(f"Error fetching parameters: {e}")
         return []
+
+def submit_sample_data(backend_url, sample_data):
+    """Submit sample data to the backend API"""
+    try:
+        response = requests.post(f"{backend_url}/api/mostres", json=sample_data)
+        if response.status_code == 200:
+            return {"success": True, "data": response.json()}
+        else:
+            return {"success": False, "error": response.text}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def validate_sample_data(data):
+    """Validate sample data and return validation messages"""
+    errors = []
+    warnings = []
+    
+    # Required fields validation
+    if not data.get('data'):
+        errors.append("La data és obligatòria")
+    
+    if not data.get('punt_mostreig') or data.get('punt_mostreig').strip() == '':
+        errors.append("El punt de mostreig és obligatori")
+    
+    # Chlorine validation
+    clor_lliure = data.get('clor_lliure')
+    clor_total = data.get('clor_total')
+    
+    if clor_lliure is not None and clor_total is not None:
+        if clor_lliure > clor_total:
+            errors.append("El clor lliure no pot ser superior al clor total")
+        if clor_total > 0 and clor_lliure >= 0:
+            clor_combinat = clor_total - clor_lliure
+            if clor_combinat < 0:
+                warnings.append("Els valors de clor semblen inconsistents")
+    
+    # pH validation
+    ph = data.get('ph')
+    if ph is not None:
+        if ph < 6.5 or ph > 9.5:
+            warnings.append("El pH està fora del rang recomanat per aigua potable (6.5-9.5)")
+    
+    # Microbiological parameters warnings
+    e_coli = data.get('recompte_escherichia_coli')
+    if e_coli is not None and e_coli > 0:
+        warnings.append("La presència d'E. coli indica possible contaminació fecal")
+    
+    enterococ = data.get('recompte_enterococ')
+    if enterococ is not None and enterococ > 0:
+        warnings.append("La presència d'Enterococ indica possible contaminació")
+    
+    coliformes = data.get('recompte_coliformes_totals')
+    if coliformes is not None and coliformes > 0:
+        warnings.append("La presència de coliformes totals pot indicar contaminació")
+    
+    # Temperature validation
+    temperatura = data.get('temperatura')
+    if temperatura is not None:
+        if temperatura < 5 or temperatura > 35:
+            warnings.append(f"La temperatura ({temperatura}°C) està fora del rang típic per aigua de consum")
+    
+    return {"errors": errors, "warnings": warnings}
 
 def create_parameter_card(param):
     """Create a parameter card component"""

@@ -50,13 +50,14 @@ def user_exists(cursor, username):
     )
     return cursor.fetchone() is not None
 
-def ensure_parameters_table():
+def ensure_application_tables():
     conn = None
     try:
         conn = psycopg2.connect(TARGET_DB_URL)
         conn.autocommit = True
         cur = conn.cursor()
         
+        # Create parameters table
         cur.execute("""
             CREATE TABLE IF NOT EXISTS parameters (
                 id SERIAL PRIMARY KEY,
@@ -67,7 +68,37 @@ def ensure_parameters_table():
         """)
         print("Parameters table created or verified.")
         
-        # Seed only if empty
+        # Create mostres table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS mostres (
+                id SERIAL PRIMARY KEY,
+                data DATE NOT NULL,
+                punt_mostreig VARCHAR(255) NOT NULL,
+                temperatura DECIMAL(5,2), -- en Celsius
+                clor_lliure DECIMAL(10,4), -- mg Cl2/l
+                clor_total DECIMAL(10,4), -- mg Cl2/l
+                recompte_escherichia_coli DECIMAL(10,2), -- NPM/100 ml
+                recompte_enterococ DECIMAL(10,2), -- NPM/100 ml
+                recompte_microorganismes_aerobis_22c DECIMAL(15,2), -- ufc/1 ml
+                recompte_coliformes_totals DECIMAL(10,2), -- NMP/100 ml
+                conductivitat_20c DECIMAL(10,2), -- 148 uS/cm
+                ph DECIMAL(4,2), -- unitat de pH
+                terbolesa DECIMAL(10,2), -- UNF
+                color DECIMAL(10,2), -- mg/l Pt-Co
+                olor DECIMAL(10,2), -- index dilució a 25ºC
+                sabor DECIMAL(10,2), -- index dilució a 25ºC
+                acid_monocloroacetic DECIMAL(10,2), -- ug/l
+                acid_dicloroacetic DECIMAL(10,2), -- ug/l
+                acid_tricloroacetic DECIMAL(10,2), -- ug/l
+                acid_monobromoacetic DECIMAL(10,2), -- ug/l
+                acid_dibromoacetic DECIMAL(10,2), -- ug/l
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        print("Mostres table created or verified.")
+        
+        # Seed parameters table only if empty
         cur.execute("SELECT COUNT(*) FROM parameters;")
         result = cur.fetchone()
         count = result[0] if result else 0
@@ -83,7 +114,7 @@ def ensure_parameters_table():
             print("Parameters table already seeded.")
         cur.close()
     except psycopg2.Error as e:
-        print(f"Error ensuring parameters table: {e}")
+        print(f"Error ensuring application tables: {e}")
     finally:
         if conn:
             conn.close()
@@ -94,7 +125,7 @@ def setup_database():
         print(f"Connecting to database '{DEV_POSTGRES_DB}' as user '{DEV_POSTGRES_USER}'.")
         
         # In development, just ensure the application tables exist
-        ensure_parameters_table()
+        ensure_application_tables()
         return
     
     # Production setup - create database and user if needed
@@ -134,7 +165,7 @@ def setup_database():
             conn.close()
 
     # Ensure application tables
-    ensure_parameters_table()
+    ensure_application_tables()
 
 if __name__ == "__main__":
     setup_database()
