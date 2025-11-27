@@ -12,7 +12,43 @@ from pages.home import create_home_page
 from pages.about import create_about_page
 from pages.browse import create_browse_page
 from pages.submit import create_submit_page
-from utils.helpers import get_backend_url, fetch_parameters, create_parameter_card, create_data_table, submit_sample_data, validate_sample_data
+from utils.helpers import (get_backend_url, fetch_parameters, create_parameter_card, create_data_table, 
+                           submit_sample_data, validate_sample_data, fetch_samples, create_samples_table, create_sample_details)
+
+def create_sample_detail_page(sample_id):
+    """Create a sample detail page for a specific sample ID"""
+    # Try to get individual sample first, fall back to list if endpoint doesn't exist
+    try:
+        import requests
+        response = requests.get(f"{BACKEND_URL}/api/mostres/{sample_id}")
+        if response.status_code == 200:
+            sample_data = response.json()
+        else:
+            # Fallback to searching through all samples
+            samples = fetch_samples(BACKEND_URL)
+            sample_data = None
+            for sample in samples:
+                if str(sample.get('id')) == str(sample_id):
+                    sample_data = sample
+                    break
+    except:
+        # Fallback to searching through all samples
+        samples = fetch_samples(BACKEND_URL)
+        sample_data = None
+        for sample in samples:
+            if str(sample.get('id')) == str(sample_id):
+                sample_data = sample
+                break
+    
+    return html.Div([
+        html.Div([
+            create_sample_details(sample_data)
+        ], style={
+            'maxWidth': '1200px', 
+            'margin': '0 auto', 
+            'padding': '2rem'
+        })
+    ], style={'backgroundColor': '#f8f9fa', 'minHeight': '80vh'})
 
 # Initialize Dash app
 app = dash.Dash(__name__, suppress_callback_exceptions=True, assets_folder='assets')
@@ -37,6 +73,22 @@ def display_page(pathname):
         return create_browse_page()
     elif pathname == '/submit':
         return create_submit_page()
+    elif pathname and pathname.startswith('/browse/sample/'):
+        # Handle sample detail pages like /browse/sample/123
+        try:
+            sample_id = pathname.split('/')[-1]
+            return create_sample_detail_page(sample_id)
+        except Exception as e:
+            print(f"Error loading sample detail: {e}")
+            return create_browse_page()
+    elif pathname and pathname.startswith('/browse/') and len(pathname.split('/')) > 2:
+        # Fallback for old URL format /browse/123
+        try:
+            sample_id = pathname.split('/')[-1]
+            return create_sample_detail_page(sample_id)
+        except Exception as e:
+            print(f"Error loading sample detail: {e}")
+            return create_browse_page()
     else:
         return create_home_page()
 
@@ -52,55 +104,87 @@ def update_home_parameters(n):
     
     return [create_parameter_card(param) for param in data]
 
-# Callback for browse page table
+# Callback for browse page samples table
 @app.callback(
-    Output('parameters-table', 'children'),
-    [Input('interval-browse', 'n_intervals')]
+    Output('samples-table', 'children'),
+    [Input('interval-browse', 'n_intervals'),
+     Input('table-current-page', 'data'),
+     Input('table-page-size', 'data'),
+     Input('table-sort-column', 'data'),
+     Input('table-sort-order', 'data')]
 )
-def update_browse_table(n):
-    data = fetch_parameters(BACKEND_URL)
-    return create_data_table(data)
+def update_samples_table(n, current_page, page_size, sort_column, sort_order):
+    data = fetch_samples(BACKEND_URL)
+    return create_samples_table(data, current_page, page_size, sort_column, sort_order)
 
-# Callback for browse page chart (only if plotly is available)
-try:
-    import plotly.graph_objects as go
+# Callback for table sorting
+@app.callback(
+    [Output('table-current-page', 'data', allow_duplicate=True),
+     Output('table-sort-column', 'data'),
+     Output('table-sort-order', 'data')],
+    [Input('sort-id', 'n_clicks'),
+     Input('sort-data', 'n_clicks'),
+     Input('sort-punt_mostreig', 'n_clicks')],
+    [State('table-sort-column', 'data'),
+     State('table-sort-order', 'data')],
+    prevent_initial_call=True
+)
+def handle_sorting(sort_id_clicks, sort_data_clicks, sort_punt_clicks, current_sort_column, current_sort_order):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return dash.no_update, dash.no_update, dash.no_update
     
-    @app.callback(
-        Output('parameters-chart', 'figure'),
-        [Input('interval-browse', 'n_intervals')]
-    )
-    def update_chart(n):
-        try:
-            data = fetch_parameters(BACKEND_URL)
-            if not data:
-                return {"data": [], "layout": {"title": "No hi ha dades disponibles"}}
-            
-            fig = go.Figure()
-            for param in data:
-                fig.add_trace(go.Bar(
-                    name=param['name'],
-                    x=[param['name']],
-                    y=[float(param['value'])],
-                    text=param['value'],
-                    textposition='auto',
-                    marker_color='#3498db'
-                ))
-            
-            fig.update_layout(
-                title="Paràmetres actuals de qualitat de l'aigua",
-                xaxis_title="Paràmetres",
-                yaxis_title="Valors",
-                showlegend=False,
-                height=400,
-                template="plotly_white",
-                font=dict(family="Segoe UI, Arial, sans-serif")
-            )
-            return fig
-        except Exception as e:
-            return {"data": [], "layout": {"title": f"Error carregant gràfic: {e}"}}
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    
+    if button_id.startswith('sort-'):
+        new_column = button_id.replace('sort-', '')
+        if new_column == current_sort_column:
+            # Toggle sort order
+            new_order = 'asc' if current_sort_order == 'desc' else 'desc'
+        else:
+            # New column, default to desc
+            new_order = 'desc'
+        return 1, new_column, new_order  # Reset to page 1 when sorting
+    
+    return dash.no_update, dash.no_update, dash.no_update
 
-except ImportError:
-    pass
+# Callback for pagination navigation
+@app.callback(
+    Output('table-current-page', 'data', allow_duplicate=True),
+    [Input('pagination-prev', 'n_clicks'),
+     Input('pagination-next', 'n_clicks'),
+     Input('page-input', 'value')],
+    [State('table-current-page', 'data')],
+    prevent_initial_call=True
+)
+def handle_pagination(prev_clicks, next_clicks, page_input, current_page):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return dash.no_update
+    
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    
+    if button_id == 'pagination-prev' and prev_clicks:
+        return max(1, current_page - 1)
+    elif button_id == 'pagination-next' and next_clicks:
+        return current_page + 1  # Table will handle max bounds
+    elif button_id == 'page-input' and page_input:
+        try:
+            page_num = int(page_input)
+            return max(1, page_num)  # Ensure at least page 1
+        except (ValueError, TypeError):
+            return current_page
+    
+    return dash.no_update
+
+@app.callback(
+    [Output('table-page-size', 'data'),
+     Output('table-current-page', 'data', allow_duplicate=True)],
+    [Input('page-size-dropdown', 'value')],
+    prevent_initial_call=True
+)
+def update_page_size(page_size):
+    return page_size, 1  # Reset to page 1 when changing page size
 
 # Callback for navigation buttons on home page
 @app.callback(

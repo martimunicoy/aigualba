@@ -14,6 +14,18 @@ def read_samples():
         raise HTTPException(status_code=500, detail=f"Error fetching samples: {str(e)}")
 
 
+@router.get("/{sample_id}")
+def read_sample(sample_id: int):
+    """Get a specific sample by ID"""
+    try:
+        samples = fetch_mostres()
+        for sample in samples:
+            if sample.get('id') == sample_id:
+                return sample
+        raise HTTPException(status_code=404, detail=f"Sample with id {sample_id} not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching sample: {str(e)}")
+
 @router.post("/")
 def create_sample(mostre: MostreData):
     """Create a new sample entry"""
