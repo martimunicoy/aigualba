@@ -28,8 +28,11 @@ def create_home_page():
             # Overlay Content
             html.Div([
                 # Welcome Title
-                html.H1("Benvingut a AiGualba!", 
-                        style={
+                html.H1([
+                    "Benvingut a ",
+                    html.Span("AiGua", style={'color': '#3498db'}),
+                    "lba!"
+                ], style={
                             'fontSize': '3.5rem', 
                             'marginBottom': '2rem', 
                             'fontWeight': '300',
@@ -41,7 +44,7 @@ def create_home_page():
                 # Logo
                 html.Div([
                     html.Img(src='/assets/images/logo2.png', 
-                             alt='AiGualba Logo',
+                             alt='AiGua-lba Logo',
                              style={
                                  'height': '80px',
                                  'width': 'auto',

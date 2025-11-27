@@ -3,6 +3,7 @@ import os
 from dash import html, dcc
 from datetime import datetime, timedelta
 from collections import Counter
+from .thresholds import get_threshold, get_percentage_of_range, is_within_safe_range
 try:
     import plotly.graph_objects as go
     import plotly.express as px
@@ -733,24 +734,125 @@ def create_sample_details(sample, referrer="/browse"):
         ('Coliformes totals (UFC/100mL)', sample.get('recompte_coliformes_totals')),
     ]
     
-    def create_param_section(title, params):
+    def create_parameter_bar(parameter_key, value):
+        """Create a progress bar for a parameter showing value within acceptable thresholds"""
+        if value is None:
+            return html.Div("No mesurat", style={'textAlign': 'right'})
+        
+        threshold = get_threshold(parameter_key)
+        if not threshold:
+            # Fallback to simple text display if no threshold defined
+            return html.Div(f"{value} {threshold.get('unit', '') if threshold else ''}", style={'textAlign': 'right'})
+        
+        # Universal range and dot design for all parameters
+        is_safe = is_within_safe_range(parameter_key, value)
+        
+        # Calculate position within the range
+        min_val = float(threshold['min'])
+        max_val = float(threshold['max'])
+        
+        # For parameters with minimum threshold > 0, use full range
+        # For parameters with minimum = 0, position relative to maximum
+        if min_val > 0:
+            # Range-based parameters (pH, Clor lliure, Clor total)
+            range_width = max_val - min_val
+            if value < min_val:
+                position_percentage = 0
+                dot_color = '#dc3545'  # Red - too low
+            elif value > max_val:
+                position_percentage = 100
+                dot_color = '#dc3545'  # Red - too high
+            else:
+                position_percentage = ((value - min_val) / range_width) * 100
+                dot_color = '#28a745'  # Green - within range
+        else:
+            # Threshold-based parameters (Suma 5 haloacètics)
+            position_percentage = min((value / max_val) * 100, 100)
+            if position_percentage < 100:
+                dot_color = '#28a745'  # Green - good
+            else:
+                dot_color = '#dc3545'  # Red - exceeds threshold
+        
+        # Format value display
+        if parameter_key == 'ph':
+            value_display = f"{value:.1f}"
+        elif 'clor' in parameter_key:
+            value_display = f"{value:.3f}"
+        else:
+            value_display = f"{value:.2f}"
+        
+        return html.Div([
+            html.Div([
+                html.Span(f"{value_display} {threshold['unit']}", style={'fontWeight': 'bold', 'marginRight': '10px'})
+            ], style={'marginBottom': '5px', 'textAlign': 'right'}),
+            html.Div([
+                # Parameter indicator dot
+                html.Div(style={
+                    'position': 'absolute',
+                    'left': f'{position_percentage}%',
+                    'top': '50%',
+                    'transform': 'translate(-50%, -50%)',
+                    'width': '12px',
+                    'height': '12px',
+                    'backgroundColor': dot_color,
+                    'borderRadius': '50%',
+                    'border': '2px solid white',
+                    'boxShadow': '0 2px 4px rgba(0,0,0,0.2)',
+                    'zIndex': '1'
+                })
+            ], style={
+                'width': '100%',
+                'maxWidth': '300px',
+                'height': '20px',
+                'backgroundColor': '#e9ecef',
+                'borderRadius': '10px',
+                'border': '1px solid #dee2e6',
+                'marginLeft': 'auto',
+                'position': 'relative'
+            }),
+            html.Div([
+                html.Span(f"{threshold['min']}", style={'fontSize': '0.8em', 'color': '#6c757d'}),
+                html.Span(f"{threshold['max']}", style={'fontSize': '0.8em', 'color': '#6c757d'})
+            ], style={
+                'display': 'flex',
+                'justifyContent': 'space-between',
+                'marginTop': '2px',
+                'maxWidth': '300px',
+                'marginLeft': 'auto'
+            })
+        ])
+
+    def create_param_section(title, params, special_params=None):
         param_items = []
         for label, value in params:
-            if value is not None and value != '':
-                display_value = str(value)
+            # Check if this is a special parameter that needs custom rendering
+            if special_params and label in special_params:
+                param_items.append(
+                    html.Tr([
+                        html.Td(label.replace(' (μg/L)', ''), style={'fontWeight': 'bold', 'padding': '0.5rem', 'borderBottom': '1px solid #dee2e6', 'textAlign': 'left', 'verticalAlign': 'top', 'width': '50%'}),
+                        html.Td(special_params[label], style={'padding': '0.5rem', 'borderBottom': '1px solid #dee2e6', 'verticalAlign': 'top', 'width': '50%'})
+                    ])
+                )
             else:
-                display_value = 'No mesurat'
-            
-            param_items.append(
-                html.Tr([
-                    html.Td(label, style={'fontWeight': 'bold', 'padding': '0.5rem', 'borderBottom': '1px solid #dee2e6', 'textAlign': 'left'}),
-                    html.Td(display_value, style={'padding': '0.5rem', 'borderBottom': '1px solid #dee2e6', 'textAlign': 'right'})
-                ])
-            )
+                if value is not None and value != '':
+                    display_value = str(value)
+                else:
+                    display_value = 'No mesurat'
+                
+                param_items.append(
+                    html.Tr([
+                        html.Td(label, style={'fontWeight': 'bold', 'padding': '0.5rem', 'borderBottom': '1px solid #dee2e6', 'textAlign': 'left', 'width': '50%'}),
+                        html.Td(display_value, style={'padding': '0.5rem', 'borderBottom': '1px solid #dee2e6', 'textAlign': 'right', 'width': '50%'})
+                    ])
+                )
         
         return html.Div([
             html.H3(title, style={'color': '#495057', 'borderBottom': '2px solid #007bff', 'paddingBottom': '0.5rem'}),
-            html.Table(param_items, style={'width': '100%', 'marginBottom': '2rem'})
+            html.Table(param_items, style={
+                'width': '100%', 
+                'marginBottom': '2rem',
+                'tableLayout': 'fixed'
+            })
         ])
     
     return html.Div([
@@ -766,8 +868,19 @@ def create_sample_details(sample, referrer="/browse"):
                 
                 # Parameter sections
                 create_param_section("Informació Bàsica", basic_info),
-                create_param_section("Paràmetres Físics", physical_params),
-                create_param_section("Paràmetres Químics", chemical_params),
+                create_param_section("Paràmetres Físics", physical_params, {
+                    'pH': create_parameter_bar('ph', sample.get('ph')),
+                    'Conductivitat a 20°C (μS/cm)': create_parameter_bar('conductivitat_20c', sample.get('conductivitat_20c')),
+                    'Terbolesa (NTU)': create_parameter_bar('terbolesa', sample.get('terbolesa')),
+                    'Color': create_parameter_bar('color', sample.get('color')),
+                    'Olor': create_parameter_bar('olor', sample.get('olor')),
+                    'Sabor': create_parameter_bar('sabor', sample.get('sabor'))
+                }),
+                create_param_section("Paràmetres Químics", chemical_params, {
+                    'Clor Lliure (mg/L)': create_parameter_bar('clor_lliure', sample.get('clor_lliure')),
+                    'Clor Total (mg/L)': create_parameter_bar('clor_total', sample.get('clor_total')),
+                    'Suma 5 Haloacètics (μg/L)': create_parameter_bar('suma_haloacetics', suma_haloacetics_detail)
+                }),
                 create_param_section("Paràmetres Biològics", biological_params),
                 
                 # Back link

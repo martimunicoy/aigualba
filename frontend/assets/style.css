@@ -50,10 +50,11 @@ body {
     color: #ecf0f1;
     font-size: 1.5rem;
     font-weight: bold;
+    text-shadow: rgba(0, 0, 0, 0.7) 2px 2px 4px;
 }
 
 .navbar-brand-link:hover .navbar-brand-text {
-    color: #3498db;
+    #color: #536069;
 }
 
 .navbar-nav {

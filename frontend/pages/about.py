@@ -4,8 +4,11 @@ def create_about_page():
     """Create the about page layout"""
     return html.Div([
         html.Div([
-            html.H1("Qui som - AiGualba", 
-                   style={
+            html.H1([
+                "Qui som - ",
+                html.Span("AiGua", style={'color': '#3498db'}),
+                "lba"
+            ], style={
                        'color': '#2c3e50', 
                        'fontSize': '2.5rem', 
                        'marginBottom': '2rem', 

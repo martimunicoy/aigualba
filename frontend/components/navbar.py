@@ -7,9 +7,12 @@ def create_navbar():
             html.Div([
                 html.A([
                     html.Img(src='/assets/images/logo2.png', 
-                             alt='AiGualba Logo',
+                             alt='AiGua-lba Logo',
                              className='navbar-logo'),
-                    html.Span("AiGualba", className='navbar-brand-text')
+                    html.Span([
+                        html.Span("AiGua", style={'color': '#3498db'}),
+                        "lba"
+                    ], className='navbar-brand-text')
                 ], href="/", className='navbar-brand-link'),
             ], className='navbar-brand-container'),
             html.Div([
