@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${DEV_POSTGRES_PASSWORD}
       POSTGRES_DB: ${DEV_POSTGRES_DB}
     volumes:
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./db/init.dev.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
       - "5433:5432"
 

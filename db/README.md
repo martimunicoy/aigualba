@@ -1,6 +1,26 @@
 # Database Setup
 
-This guide provides instructions to set up the development database for the Aigualba project.
+This guide provides instructions to set up the database for the Aigualba water quality monitoring project.
+
+## Database Initialization Files
+
+The database setup includes multiple initialization files for different environments:
+
+### 🟢 Production: `init.prod.sql`
+- **Use for**: Production deployments
+- **Contains**: Clean database schema, indexes, and essential system parameters
+- **No dummy data**: Starts with empty tables ready for real water quality samples
+- **Optimized**: Includes performance indexes and table documentation
+
+### 🟡 Development: `init.dev.sql` 
+- **Use for**: Development and testing
+- **Contains**: Database schema + 5 sample water quality records
+- **Dummy data**: Pre-populated with realistic test samples from different locations
+- **Testing ready**: Allows immediate testing of browse/detail functionality
+
+### 🔴 Legacy: `init.sql`
+- **Status**: Current default (contains test data)
+- **Recommendation**: Replace with appropriate environment-specific file
 
 ## Prerequisites
 
