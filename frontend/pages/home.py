@@ -143,19 +143,38 @@ def create_home_page():
         
         # Live Data Section
         html.Div([
-            html.H2("Paràmetres en temps real", 
+            html.H2("Consulta la darrera mostra", 
                    style={
                        'color': '#2c3e50', 
                        'fontSize': '2rem', 
-                       'marginBottom': '2rem', 
+                       'marginBottom': '1rem', 
                        'textAlign': 'center'
                    }),
+            
+            # Location selector
+            html.Div([
+                html.Label("Selecciona ubicació:", 
+                          style={'fontWeight': 'bold', 'marginBottom': '0.5rem', 'display': 'block', 'color': '#495057'}),
+                dcc.Dropdown(
+                    id='home-location-selector',
+                    placeholder='Carregant ubicacions...',
+                    value=None,  # Will be set to first available location
+                    style={'marginBottom': '1rem'}
+                )
+            ], style={
+                'maxWidth': '400px',
+                'margin': '0 auto 2rem auto',
+                'padding': '0 2rem'
+            }),
+            
             dcc.Interval(id='interval-home', interval=30*1000, n_intervals=0),
+            dcc.Store(id='current-sample-id', data=None),
+            dcc.Store(id='selected-location', data=None),
             html.Div(id='live-parameters', style={
-                'display': 'flex', 
-                'gap': '2rem', 
-                'justifyContent': 'center', 
-                'flexWrap': 'wrap'
+                'width': '100%', 
+                'margin': '0 auto',
+                'padding': '0 2rem',
+                'boxSizing': 'border-box'
             })
         ], style={
             'backgroundColor': 'white', 

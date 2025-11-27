@@ -142,6 +142,75 @@ def fetch_sample_by_id(backend_url, sample_id):
         print(f"Error fetching sample {sample_id}: {e}")
         return None
 
+def fetch_latest_gualba_sample(backend_url):
+    """Fetch the latest sample from Gualba - kept for backwards compatibility"""
+    return fetch_latest_sample_by_location(backend_url, "Gualba")
+
+def fetch_latest_sample_by_location(backend_url, location):
+    """Fetch the latest sample from a specific location"""
+    try:
+        samples = fetch_samples(backend_url)
+        if not samples:
+            return None
+        
+        # Filter samples by location
+        if location:
+            location_samples = [s for s in samples if s.get('punt_mostreig', '').lower() == location.lower()]
+        else:
+            location_samples = samples
+        
+        if not location_samples:
+            return None
+            
+        # Sort by date descending to get the most recent
+        sorted_samples = sorted(location_samples,
+                                key=lambda x: x.get('data', ''), 
+                                reverse=True)
+        return sorted_samples[0] if sorted_samples else None
+    except Exception as e:
+        print(f"Error fetching latest sample for {location}: {e}")
+        return None
+
+def calculate_suma_haloacetics(sample):
+    """Calculate the sum of the five haloacetic acids"""
+    acids = [
+        'acid_monocloroacetic',
+        'acid_dicloroacetic', 
+        'acid_tricloroacetic',
+        'acid_monobromoacetic',
+        'acid_dibromoacetic'
+    ]
+    
+    total = 0
+    has_values = False
+    
+    for acid in acids:
+        value = sample.get(acid)
+        if value is not None and value != '':
+            try:
+                total += float(value)
+                has_values = True
+            except (ValueError, TypeError):
+                continue
+    
+    return total if has_values else None
+
+def calculate_clor_combinat_residual(sample):
+    """Calculate residual combined chlorine (clor total - clor lliure)"""
+    clor_total = sample.get('clor_total')
+    clor_lliure = sample.get('clor_lliure')
+    
+    if (clor_total is not None and clor_total != '' and 
+        clor_lliure is not None and clor_lliure != ''):
+        try:
+            total = float(clor_total)
+            lliure = float(clor_lliure)
+            return total - lliure
+        except (ValueError, TypeError):
+            return None
+    
+    return None
+
 def submit_sample_data(backend_url, sample_data):
     """Submit sample data to the backend API"""
     try:
@@ -202,6 +271,153 @@ def create_parameter_card(parameter):
             html.Span(f"Valor límit: {parameter.get('valor_limit', 'N/A')}", className='parameter-limit')
         ], className='parameter-info')
     ], className='parameter-card')
+
+def create_latest_sample_summary(sample):
+    """Create a summary card for the latest sample from Gualba"""
+    if not sample:
+        return html.Div([
+            html.H3("Darrera mostra de Gualba", style={'color': '#2c3e50', 'marginBottom': '1rem'}),
+            html.P("No s'han trobat mostres recents de Gualba", 
+                  style={'color': '#6c757d', 'fontStyle': 'italic'})
+        ], style={
+            'backgroundColor': '#f8f9fa',
+            'padding': '2rem',
+            'borderRadius': '10px',
+            'border': '1px solid #dee2e6',
+            'textAlign': 'center'
+        })
+    
+    # Format date
+    date_str = sample.get('data', 'No mesurat')
+    if date_str and date_str != 'No mesurat':
+        try:
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+            formatted_date = format_date_catalan(date_obj, 'long')
+        except ValueError:
+            formatted_date = date_str
+    else:
+        formatted_date = 'No mesurat'
+    
+    """
+    # Key parameters to display - organized by category
+    basic_params = [
+        ('Data de recollida', formatted_date),
+        ('Punt de mostreig', sample.get('punt_mostreig', 'No mesurat'))
+    ]
+    
+    physical_chemical_params = [
+        ('Temperatura', f"{sample.get('temperatura')} °C" if sample.get('temperatura') else 'No mesurat'),
+        ('pH', sample.get('ph') if sample.get('ph') else 'No mesurat'),
+        ('Conductivitat (20°C)', f"{sample.get('conductivitat_20c')} μS/cm" if sample.get('conductivitat_20c') else 'No mesurat'),
+        ('Terbolesa', f"{sample.get('terbolesa')} UNF" if sample.get('terbolesa') else 'No mesurat'),
+        ('Color', f"{sample.get('color')} mg/L Pt-Co" if sample.get('color') else 'No mesurat'),
+        ('Olor', f"{sample.get('olor')} (índex dilució 25°C)" if sample.get('olor') else 'No mesurat'),
+        ('Sabor', f"{sample.get('sabor')} (índex dilució 25°C)" if sample.get('sabor') else 'No mesurat')
+    ]
+    
+    # Calculate derived values
+    clor_combinat = calculate_clor_combinat_residual(sample)
+    
+    chlorine_params = [
+        ('Clor lliure', f"{sample.get('clor_lliure')} mg/L" if sample.get('clor_lliure') else 'No mesurat'),
+        ('Clor total', f"{sample.get('clor_total')} mg/L" if sample.get('clor_total') else 'No mesurat'),
+        ('Clor combinat residual', f"{clor_combinat:.4f} mg/L" if clor_combinat is not None else 'No mesurat')
+    ]
+    
+    microbiological_params = [
+        ('E. coli', f"{sample.get('recompte_escherichia_coli')} NPM/100mL" if sample.get('recompte_escherichia_coli') else 'No mesurat'),
+        ('Enterococs', f"{sample.get('recompte_enterococ')} NPM/100mL" if sample.get('recompte_enterococ') else 'No mesurat'),
+        ('Microorganismes aerobis 22°C', f"{sample.get('recompte_microorganismes_aerobis_22c')} UFC/1mL" if sample.get('recompte_microorganismes_aerobis_22c') else 'No mesurat'),
+        ('Coliformes totals', f"{sample.get('recompte_coliformes_totals')} NMP/100mL" if sample.get('recompte_coliformes_totals') else 'No mesurat')
+    ]
+    
+    # Calculate suma haloacetics
+    suma_haloacetics = calculate_suma_haloacetics(sample)
+    
+    chemical_acids_params = [
+        ('Àcid monocloroacètic', f"{sample.get('acid_monocloroacetic')} μg/L" if sample.get('acid_monocloroacetic') else 'No mesurat'),
+        ('Àcid dicloroacètic', f"{sample.get('acid_dicloroacetic')} μg/L" if sample.get('acid_dicloroacetic') else 'No mesurat'),
+        ('Àcid tricloroacètic', f"{sample.get('acid_tricloroacetic')} μg/L" if sample.get('acid_tricloroacetic') else 'No mesurat'),
+        ('Àcid monobromoacètic', f"{sample.get('acid_monobromoacetic')} μg/L" if sample.get('acid_monobromoacetic') else 'No mesurat'),
+        ('Àcid dibromoacètic', f"{sample.get('acid_dibromoacetic')} μg/L" if sample.get('acid_dibromoacetic') else 'No mesurat'),
+        ('Suma 5 haloacètics', f"{suma_haloacetics:.2f} μg/L" if suma_haloacetics is not None else 'No mesurat')
+    ]
+    
+    # Combine all parameters
+    key_params = basic_params + physical_chemical_params + chlorine_params + microbiological_params + chemical_acids_params
+    """
+
+    # Calculate suma haloacetics
+    suma_haloacetics = calculate_suma_haloacetics(sample)
+
+    # Define subset of key parameters to display
+    key_params = [
+        ('Data de recollida', formatted_date),
+        ('Punt de mostreig', sample.get('punt_mostreig', 'No mesurat')),
+        ('Temperatura', f"{sample.get('temperatura')} °C" if sample.get('temperatura') else 'No mesurat'),
+        ('pH', sample.get('ph') if sample.get('ph') else 'No mesurat'),
+        ('Clor lliure', f"{sample.get('clor_lliure')} mg/L" if sample.get('clor_lliure') else 'No mesurat'),
+        ('E. coli', f"{sample.get('recompte_escherichia_coli')} NPM/100mL" if sample.get('recompte_escherichia_coli') else 'No mesurat'),
+        ('Suma 5 haloacètics', f"{suma_haloacetics:.2f} μg/L" if suma_haloacetics is not None else 'No mesurat')
+    ]
+    
+    return html.Div([
+        html.H3("Darrera mostra de Gualba", 
+                style={'color': '#2c3e50', 'marginBottom': '1.5rem', 'textAlign': 'center'}),
+        
+        html.Div([
+            html.Div([
+                html.Div([
+                    html.H5(label, style={'color': '#495057', 'margin': '0', 'fontSize': '0.9rem'}),
+                    html.P(value, style={'color': '#2c3e50', 'margin': '0.25rem 0 0 0', 'fontSize': '1.1rem', 'fontWeight': '500'})
+                ], style={
+                    'backgroundColor': 'white',
+                    'padding': '1rem',
+                    'borderRadius': '6px',
+                    'border': '1px solid #e3e6ea',
+                    'textAlign': 'center',
+                    'minHeight': '80px',
+                    'display': 'flex',
+                    'flexDirection': 'column',
+                    'justifyContent': 'center',
+                    'boxShadow': '0 1px 3px rgba(0,0,0,0.08)',
+                    'transition': 'transform 0.2s ease, box-shadow 0.2s ease'
+                })
+                for label, value in key_params
+            ], style={
+                'display': 'grid',
+                'gridTemplateColumns': 'repeat(auto-fit, minmax(180px, 1fr))',
+                'gap': '1rem',
+                'width': '100%',
+                'gridAutoRows': 'minmax(80px, auto)'
+            }),
+            
+            html.Div([
+                html.Button("Veure detalls complets →",
+                          id='home-sample-details-btn',
+                          style={
+                              'backgroundColor': '#3498db', 
+                              'color': 'white', 
+                              'border': 'none',
+                              'padding': '12px 24px', 
+                              'borderRadius': '6px', 
+                              'fontSize': '1rem', 
+                              'cursor': 'pointer',
+                              'boxShadow': '0 4px 8px rgba(0,0,0,0.3)',
+                              'transition': 'all 0.2s ease'
+                          })
+            ], style={'textAlign': 'center', 'marginTop': '1.5rem'})
+        ])
+    ], style={
+        'backgroundColor': '#f8f9fa',
+        'padding': '2rem',
+        'borderRadius': '10px',
+        'border': '1px solid #dee2e6',
+        'boxShadow': '0 2px 4px rgba(0,0,0,0.05)',
+        'width': '100%',
+        'boxSizing': 'border-box',
+        'margin': '0'
+    })
 
 def create_data_table(data):
     """Create a data table component"""
@@ -323,7 +539,7 @@ def create_samples_table(samples, current_page=1, page_size=10, sort_column='dat
         if sample_id:
             detail_link = dcc.Link(
                 "Veure Detalls",
-                href=f"/browse/sample/{sample_id}",
+                href=f"/sample/{sample_id}?ref=browse",
                 style={
                     'color': '#007bff',
                     'textDecoration': 'none',
@@ -458,7 +674,7 @@ def create_samples_table(samples, current_page=1, page_size=10, sort_column='dat
         ])
     ])
 
-def create_sample_details(sample):
+def create_sample_details(sample, referrer="/browse"):
     """Create a detailed view of a sample"""
     if not sample:
         return html.Div([
@@ -494,14 +710,20 @@ def create_sample_details(sample):
         ('Sabor', sample.get('sabor')),
     ]
     
+    # Calculate derived values
+    clor_combinat_detail = calculate_clor_combinat_residual(sample)
+    suma_haloacetics_detail = calculate_suma_haloacetics(sample)
+    
     chemical_params = [
         ('Clor Lliure (mg/L)', sample.get('clor_lliure')),
         ('Clor Total (mg/L)', sample.get('clor_total')),
+        ('Clor Combinat Residual (mg/L)', f"{clor_combinat_detail:.4f}" if clor_combinat_detail is not None else None),
         ('Àcid Monocloroacètic (μg/L)', sample.get('acid_monocloroacetic')),
         ('Àcid Dicloroacètic (μg/L)', sample.get('acid_dicloroacetic')),
         ('Àcid Tricloroacètic (μg/L)', sample.get('acid_tricloroacetic')),
         ('Àcid Monobromoacètic (μg/L)', sample.get('acid_monobromoacetic')),
         ('Àcid Dibromoacètic (μg/L)', sample.get('acid_dibromoacetic')),
+        ('Suma 5 Haloacètics (μg/L)', f"{suma_haloacetics_detail:.2f}" if suma_haloacetics_detail is not None else None),
     ]
     
     biological_params = [
@@ -550,7 +772,8 @@ def create_sample_details(sample):
                 
                 # Back link
                 html.Div([
-                    dcc.Link("← Tornar a la llista", href="/browse", 
+                    dcc.Link("← Tornar a la llista" if referrer == "/browse" else "← Tornar", 
+                            href=referrer, 
                             style={'color': '#007bff', 'textDecoration': 'none', 'fontSize': '1.1rem'})
                 ], style={'textAlign': 'center', 'marginTop': '3rem'})
             ], style={

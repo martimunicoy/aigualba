@@ -1,5 +1,5 @@
 import dash
-from dash import html, dcc, Input, Output, State
+from dash import html, dcc, Input, Output, State, ALL
 import sys
 import os
 import requests
@@ -15,12 +15,13 @@ from pages.browse import create_browse_page
 from pages.submit import create_submit_page
 from utils.helpers import (get_backend_url, fetch_parameters, create_parameter_card, create_data_table, 
                            submit_sample_data, validate_sample_data, fetch_samples, create_samples_table, create_sample_details,
-                           create_data_visualizations, filter_samples_by_criteria, get_unique_locations)
+                           create_data_visualizations, filter_samples_by_criteria, get_unique_locations, 
+                           fetch_latest_gualba_sample, create_latest_sample_summary, fetch_latest_sample_by_location)
 
 # Get backend URL
 BACKEND_URL = get_backend_url()
 
-def create_sample_detail_page(sample_id):
+def create_sample_detail_page(sample_id, referrer="/browse"):
     """Create a sample detail page for a specific sample ID"""
     sample_data = None
     error_info = []
@@ -109,7 +110,7 @@ def create_sample_detail_page(sample_id):
     
     return html.Div([
         html.Div([
-            create_sample_details(sample_data)
+            create_sample_details(sample_data, referrer)
         ], style={
             'maxWidth': '1200px', 
             'margin': '0 auto', 
@@ -133,19 +134,41 @@ app.config.suppress_callback_exceptions = True
 
 # Callback for URL routing
 @app.callback(Output('page-content', 'children'),
-              [Input('url', 'pathname')])
-def display_page(pathname):
+              [Input('url', 'pathname'), Input('url', 'search')])
+def display_page(pathname, search):
     if pathname == '/about':
         return create_about_page()
     elif pathname == '/browse':
         return create_browse_page()
     elif pathname == '/submit':
         return create_submit_page()
+    elif pathname and pathname.startswith('/sample/'):
+        # Handle direct sample detail pages like /sample/123
+        try:
+            # Extract sample ID from pathname
+            sample_id = pathname.split('/')[-1]
+            
+            # Extract referrer from search parameters
+            referrer = "/"  # default to home
+            if search:
+                if 'ref=browse' in search:
+                    referrer = "/browse"
+                elif 'ref=home' in search:
+                    referrer = "/"
+            
+            return create_sample_detail_page(sample_id, referrer=referrer)
+        except Exception as e:
+            print(f"Error loading sample detail: {e}")
+            return html.Div([
+                html.H2("Error loading sample"),
+                html.P(f"Could not load sample {pathname.split('/')[-1]}"),
+                html.A("Return to home", href="/")
+            ])
     elif pathname and pathname.startswith('/browse/sample/'):
         # Handle sample detail pages like /browse/sample/123
         try:
             sample_id = pathname.split('/')[-1]
-            return create_sample_detail_page(sample_id)
+            return create_sample_detail_page(sample_id, referrer="/browse")
         except Exception as e:
             print(f"Error loading sample detail: {e}")
             return html.Div([
@@ -157,7 +180,7 @@ def display_page(pathname):
         # Fallback for old URL format /browse/123
         try:
             sample_id = pathname.split('/')[-1]
-            return create_sample_detail_page(sample_id)
+            return create_sample_detail_page(sample_id, referrer="/browse")
         except Exception as e:
             print(f"Error loading sample detail: {e}")
             return html.Div([
@@ -168,17 +191,64 @@ def display_page(pathname):
     else:
         return create_home_page()
 
-# Callback for home page live parameters
+# Callback to populate home location selector
 @app.callback(
-    Output('live-parameters', 'children'),
+    [Output('home-location-selector', 'options'),
+     Output('home-location-selector', 'value')],
     [Input('interval-home', 'n_intervals')]
 )
-def update_home_parameters(n):
-    data = fetch_parameters(BACKEND_URL)
-    if not data:
-        return [html.Div("Error carregant dades", style={'color': 'red', 'textAlign': 'center'})]
+def populate_home_location_selector(n):
+    data = fetch_samples(BACKEND_URL)
+    locations = get_unique_locations(data)
+    options = [{'label': location, 'value': location} for location in locations]
+    # Set default to first location if available
+    default_value = locations[0] if locations else None
+    return options, default_value
+
+# Callback for home page live parameters
+@app.callback(
+    [Output('live-parameters', 'children'),
+     Output('current-sample-id', 'data'),
+     Output('selected-location', 'data')],
+    [Input('interval-home', 'n_intervals'),
+     Input('home-location-selector', 'value')]
+)
+def update_home_parameters(n, selected_location):
+    # Fetch the latest sample from selected location
+    if selected_location:
+        latest_sample = fetch_latest_sample_by_location(BACKEND_URL, selected_location)
+    else:
+        # Fallback to any latest sample if no location selected
+        latest_sample = fetch_latest_sample_by_location(BACKEND_URL, None)
     
-    return [create_parameter_card(param) for param in data]
+    if latest_sample:
+        sample_id = latest_sample.get('id')
+        return create_latest_sample_summary(latest_sample), sample_id, selected_location
+    else:
+        location_text = f"de {selected_location}" if selected_location else ""
+        return html.Div([
+            html.H3(f"Darrera mostra {location_text}", style={'color': '#2c3e50', 'marginBottom': '1rem'}),
+            html.P(f"No s'han trobat mostres recents{' de ' + selected_location if selected_location else ''}", 
+                  style={'color': '#6c757d', 'fontStyle': 'italic'})
+        ], style={
+            'backgroundColor': '#f8f9fa',
+            'padding': '2rem',
+            'borderRadius': '10px',
+            'border': '1px solid #dee2e6',
+            'textAlign': 'center'
+        }), None, selected_location
+
+# Callback for home page sample details button
+@app.callback(
+    Output('url', 'pathname', allow_duplicate=True),
+    [Input('home-sample-details-btn', 'n_clicks')],
+    [State('current-sample-id', 'data')],
+    prevent_initial_call=True
+)
+def navigate_to_home_sample_details(n_clicks, sample_id):
+    if n_clicks and sample_id:
+        return f'/sample/{sample_id}?ref=home'
+    return dash.no_update
 
 # Callback to populate location filter with unique locations
 @app.callback(
@@ -348,6 +418,8 @@ def navigate_from_buttons(browse_clicks, submit_clicks, current_path):
     elif button_id == 'btn-submit' and submit_clicks and submit_clicks > 0:
         return '/submit'
     return dash.no_update
+
+
 
 # Mobile menu toggle callback
 @app.callback(
