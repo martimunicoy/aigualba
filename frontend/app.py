@@ -148,7 +148,7 @@ def toggle_mobile_menu(n_clicks, nav_menu_class, toggle_class):
 # Callback for sample submission
 @app.callback(
     [Output('submit-sample-status', 'children'),
-     Output('validation-alert', 'children')],
+     Output('submit-sample-status', 'className')],
     [Input('submit-sample-button', 'n_clicks')],
     [State('sample-date', 'date'),
      State('punt-mostreig', 'value'),
@@ -212,48 +212,45 @@ def handle_sample_submission(n_clicks, sample_date, punt_mostreig, temperatura, 
     if validation['errors']:
         validation_alert.append(
             html.Div([
-                html.H5("Errors de validació:", style={'color': '#d32f2f', 'marginBottom': '0.5rem'}),
-                html.Ul([html.Li(error) for error in validation['errors']], 
-                       style={'color': '#d32f2f', 'margin': '0'})
-            ], style={
-                'backgroundColor': '#ffebee',
-                'border': '1px solid #f44336',
-                'borderRadius': '6px',
-                'padding': '1rem',
-                'marginBottom': '1rem'
-            })
+                html.Ul([html.Li(error) for error in validation['errors']])
+            ], className='validation-error')
         )
     
     if validation['warnings']:
         validation_alert.append(
             html.Div([
-                html.H5("Avisos:", style={'color': '#f57c00', 'marginBottom': '0.5rem'}),
-                html.Ul([html.Li(warning) for warning in validation['warnings']], 
-                       style={'color': '#f57c00', 'margin': '0'})
-            ], style={
-                'backgroundColor': '#fff3e0',
-                'border': '1px solid #ff9800',
-                'borderRadius': '6px',
-                'padding': '1rem',
-                'marginBottom': '1rem'
-            })
+                html.H5("Avisos:", style={'marginBottom': '0.5rem'}),
+                html.Ul([html.Li(warning) for warning in validation['warnings']])
+            ], className='validation-warning')
         )
     
     # If there are validation errors, don't submit
     if validation['errors']:
-        return (
+        # Combine error message with validation alerts in submit-status
+        error_content = [
             html.Div("Si us plau, corregeix els errors de validació abans d'enviar.", 
-                    style={'color': '#d32f2f', 'fontWeight': '600'}),
-            validation_alert
+                    style={'color': '#d32f2f', 'fontWeight': '600', 'marginBottom': '1rem'})
+        ]
+        if validation_alert:
+            error_content.extend(validation_alert)
+        
+        return (
+            html.Div(error_content),
+            "submit-status show error"
         )
     
     # Submit data
     result = submit_sample_data(BACKEND_URL, sample_data)
     
     if result['success']:
+        # Safely get ID from result data
+        sample_id = "N/A"
+        if result.get('data') and isinstance(result['data'], dict):
+            sample_id = str(result['data'].get('id', 'N/A'))
+        
         success_message = html.Div([
-            html.H5("✓ Mostra enviada correctament!", style={'color': '#2e7d32', 'marginBottom': '0.5rem'}),
-            html.P(f"ID de la mostra: {result['data'].get('id', 'N/A')}", style={'margin': '0'})
+            html.H3("✓ Mostra enviada correctament!", style={'color': '#2e7d32', 'marginBottom': '0.5rem', 'marginTop': '0'}),
+            html.P(f"ID de la mostra: {sample_id}", style={'margin': '0'})
         ], style={
             'backgroundColor': '#e8f5e8',
             'border': '1px solid #4caf50',
@@ -261,7 +258,15 @@ def handle_sample_submission(n_clicks, sample_date, punt_mostreig, temperatura, 
             'padding': '1rem',
             'color': '#2e7d32'
         })
-        return success_message, validation_alert
+        # Include validation warnings with success message if present
+        success_content = [success_message]
+        if validation_alert:
+            success_content.extend(validation_alert)
+        
+        return (
+            html.Div(success_content),
+            "submit-status show success"
+        )
     else:
         error_message = html.Div([
             html.H5("Error en enviar la mostra", style={'color': '#d32f2f', 'marginBottom': '0.5rem'}),
@@ -273,7 +278,15 @@ def handle_sample_submission(n_clicks, sample_date, punt_mostreig, temperatura, 
             'padding': '1rem',
             'color': '#d32f2f'
         })
-        return error_message, validation_alert
+        # Include validation warnings with error message if present  
+        error_content = [error_message]
+        if validation_alert:
+            error_content.extend(validation_alert)
+        
+        return (
+            html.Div(error_content),
+            "submit-status show error"
+        )
 
 if __name__ == "__main__":
     debug_flag = os.getenv("DASH_DEBUG", "")

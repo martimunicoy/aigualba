@@ -60,19 +60,17 @@ def create_submit_page():
         
         # Main form container
         html.Div([
-            # Validation messages
-            html.Div(id="validation-alert", className='validation-alert', style={'display': 'none'}),
-            html.Div(id="submit-sample-status", className='submit-status', style={'display': 'none'}),
-            
             # Basic information section
             create_section("Informació bàsica", [
                 html.Div([
                     html.Label("Data de la mostra *", className='form-label-aligned'),
                     dcc.DatePickerSingle(
                         id='sample-date',
-                        date=date.today(),
+                        placeholder='Selecciona',
                         display_format='DD/MM/YYYY',
                         className='form-input-aligned',
+                        clearable=True,
+                        max_date_allowed=date.today(),
                         style={'border': '0', 'padding': '0'}
                     )
                 ], className='form-row-aligned'),
@@ -91,7 +89,7 @@ def create_submit_page():
                         ],
                         placeholder="Selecciona punt de mostreig",
                         className='form-dropdown-aligned',
-                        clearable=False
+                        clearable=True
                     )
                 ], className='form-row-aligned')
             ]),
@@ -137,7 +135,8 @@ def create_submit_page():
             # Submit button
             html.Div([
                 html.Button("Enviar mostra", id="submit-sample-button", className='hero-btn-primary submit-btn')
-            ], className='submit-button-section')
-            
+            ], className='submit-button-section'),
+            html.Div(id="submit-sample-status", className='submit-status', style={'display': 'none'})
+
         ], className='submit-main-container')
     ], className='submit-page-container')
