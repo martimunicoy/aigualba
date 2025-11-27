@@ -17,6 +17,24 @@ def create_browse_page():
                        'textAlign': 'center'
                    }),
             
+            # Instructions section
+            html.Div([
+                html.H3("Com utilitzar aquesta pàgina", 
+                        style={'color': '#2c3e50', 'marginBottom': '1.5rem', 'textAlign': 'center'}),
+                html.Ul([
+                    html.Li("Navega per totes les mostres d'aigua recollides"),
+                    html.Li("Fes clic a 'Veure detalls' per veure la informació completa de cada mostra"),
+                    html.Li("Les mostres es mostren ordenades per data de recollida"),
+                    html.Li("Utilitza els filtres per trobar mostres específiques")
+                ], style={'fontSize': '1rem', 'lineHeight': '1.6', 'color': '#34495e'})
+            ], style={
+                'backgroundColor': 'white', 
+                'margin': '1rem 0', 
+                'padding': '2rem', 
+                'borderRadius': '10px', 
+                'boxShadow': '0 4px 15px rgba(0,0,0,0.1)'
+            }),
+
             # Samples table section
             html.Div([
                 html.Div([
@@ -40,23 +58,9 @@ def create_browse_page():
                     'boxShadow': '0 4px 15px rgba(0,0,0,0.1)'
                 }),
                 
-                # Instructions section
-                html.Div([
-                    html.H3("Com utilitzar aquesta pàgina", 
-                           style={'color': '#2c3e50', 'marginBottom': '1.5rem', 'textAlign': 'center'}),
-                    html.Ul([
-                        html.Li("Navega per totes les mostres d'aigua recollides"),
-                        html.Li("Fes clic a 'Veure detalls' per veure la informació completa de cada mostra"),
-                        html.Li("Les mostres es mostren ordenades per data de recollida"),
-                        html.Li("Utilitza els filtres per trobar mostres específiques")
-                    ], style={'fontSize': '1rem', 'lineHeight': '1.6', 'color': '#34495e'})
-                ], style={
-                    'backgroundColor': 'white', 
-                    'margin': '1rem 0', 
-                    'padding': '2rem', 
-                    'borderRadius': '10px', 
-                    'boxShadow': '0 4px 15px rgba(0,0,0,0.1)'
-                })
+                # Data visualizations section
+                html.Div(id='data-visualizations', style={'marginBottom': '2rem'})
+                
             ])
         ], style={
             'maxWidth': '1200px', 

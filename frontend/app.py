@@ -14,7 +14,8 @@ from pages.about import create_about_page
 from pages.browse import create_browse_page
 from pages.submit import create_submit_page
 from utils.helpers import (get_backend_url, fetch_parameters, create_parameter_card, create_data_table, 
-                           submit_sample_data, validate_sample_data, fetch_samples, create_samples_table, create_sample_details)
+                           submit_sample_data, validate_sample_data, fetch_samples, create_samples_table, create_sample_details,
+                           create_data_visualizations)
 
 # Get backend URL
 BACKEND_URL = get_backend_url()
@@ -192,6 +193,15 @@ def update_samples_table(n, current_page, page_size, sort_column, sort_order):
     data = fetch_samples(BACKEND_URL)
     print(f"Table update - Page: {current_page}, Size: {page_size}, Sort: {sort_column}, Order: {sort_order}")
     return create_samples_table(data, current_page, page_size, sort_column, sort_order)
+
+# Callback for data visualizations
+@app.callback(
+    Output('data-visualizations', 'children'),
+    [Input('interval-browse', 'n_intervals')]
+)
+def update_data_visualizations(n):
+    data = fetch_samples(BACKEND_URL)
+    return create_data_visualizations(data)
 
 # Callback for table sorting
 @app.callback(

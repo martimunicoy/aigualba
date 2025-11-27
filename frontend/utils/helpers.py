@@ -1,7 +1,14 @@
 import requests
 import os
 from dash import html, dcc
-from datetime import datetime
+from datetime import datetime, timedelta
+from collections import Counter
+try:
+    import plotly.graph_objects as go
+    import plotly.express as px
+    HAS_PLOTLY = True
+except ImportError:
+    HAS_PLOTLY = False
 
 def get_backend_url():
     """Get the backend URL from environment variables"""
@@ -401,3 +408,217 @@ def create_sample_details(sample):
                     style={'color': '#007bff', 'textDecoration': 'none', 'fontSize': '1.1rem'})
         ], style={'textAlign': 'center', 'marginTop': '3rem'})
     ])
+
+def create_samples_by_location_chart(samples):
+    """Create a bar chart showing samples count by location"""
+    if not HAS_PLOTLY or not samples:
+        return html.Div([
+            html.P("Gràfic no disponible", style={'textAlign': 'center', 'color': '#6c757d'})
+        ])
+    
+    # Count samples by location
+    location_counts = Counter()
+    for sample in samples:
+        location = sample.get('punt_mostreig', 'Ubicació desconeguda')
+        location_counts[location] += 1
+    
+    # Sort alphabetically by location name
+    sorted_locations = sorted(location_counts.items())
+    locations = [item[0] for item in sorted_locations]
+    counts = [item[1] for item in sorted_locations]
+    
+    if not locations:
+        return html.Div([
+            html.P("No hi ha dades per mostrar", style={'textAlign': 'center', 'color': '#6c757d'})
+        ])
+    
+    # Create bar chart
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=locations,
+        y=counts,
+        name='Mostres per ubicació',
+        marker_color="#f59f1f"
+    ))
+    
+    fig.update_layout(
+        title={
+            'text': 'Distribució de mostres per ubicació',
+            'x': 0.5,
+            'xanchor': 'center',
+            'font': {'size': 16, 'color': '#2c3e50'}
+        },
+        xaxis_title={'text': 'Punt de mostreig', 'font': {'weight': 'bold'}},
+        yaxis_title={'text': 'Nombre de mostres', 'font': {'weight': 'bold'}},
+        showlegend=False,
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        margin={'l': 40, 'r': 40, 't': 60, 'b': 120},
+        height=400,
+        font={'color': '#495057'},
+        xaxis={
+            'showline': True,
+            'linecolor': '#dee2e6',
+            'linewidth': 1
+        },
+        yaxis={
+            'dtick': 1,
+            'rangemode': 'tozero',
+            'showline': True,
+            'linecolor': '#dee2e6',
+            'linewidth': 1
+        }
+    )
+    
+    return dcc.Graph(
+        figure=fig,
+        config={'displayModeBar': False}
+    )
+
+def create_samples_by_month_chart(samples):
+    """Create a bar chart showing samples count by month for the last 12 months"""
+    if not HAS_PLOTLY or not samples:
+        return html.Div([
+            html.P("Gràfic no disponible", style={'textAlign': 'center', 'color': '#6c757d'})
+        ])
+    
+    # Calculate date range (last 12 months from start of month)
+    today = datetime.now()
+    twelve_months_ago = today.replace(day=1) - timedelta(days=365)
+    
+    # Debug: Print sample dates and date range
+    print(f"Date range: {twelve_months_ago.strftime('%Y-%m-%d')} to {today.strftime('%Y-%m-%d')}")
+    for sample in samples[:3]:  # Print first 3 samples for debugging
+        print(f"Sample date: {sample.get('data')}")
+    
+    # Count samples by month
+    monthly_counts = {}
+    
+    # Initialize all months in the last 12 months with 0
+    current_date = twelve_months_ago
+    while current_date <= today:
+        month_key = current_date.strftime('%Y-%m')
+        monthly_counts[month_key] = 0
+        # Move to next month
+        if current_date.month == 12:
+            current_date = current_date.replace(year=current_date.year + 1, month=1)
+        else:
+            current_date = current_date.replace(month=current_date.month + 1)
+    
+    # Count actual samples (include all samples, not just last 12 months for debugging)
+    for sample in samples:
+        sample_date_str = sample.get('data')
+        if sample_date_str:
+            try:
+                sample_date = datetime.strptime(sample_date_str, '%Y-%m-%d')
+                month_key = sample_date.strftime('%Y-%m')
+                # Always count the sample, create month if it doesn't exist
+                if month_key not in monthly_counts:
+                    monthly_counts[month_key] = 0
+                monthly_counts[month_key] += 1
+                print(f"Counted sample: {sample_date_str} -> {month_key}")
+            except ValueError as e:
+                print(f"Error parsing date {sample_date_str}: {e}")
+                continue
+    
+    # Prepare data for plotting - show only months with samples or last 12 months
+    if any(count > 0 for count in monthly_counts.values()):
+        # Show all months that have samples plus the standard 12-month range
+        all_months = sorted(monthly_counts.keys())
+    else:
+        all_months = sorted(monthly_counts.keys())
+    
+    months = all_months
+    counts = [monthly_counts[month] for month in months]
+    
+    # Format month labels
+    month_labels = []
+    for month in months:
+        try:
+            date_obj = datetime.strptime(month, '%Y-%m')
+            month_labels.append(date_obj.strftime('%b %Y'))
+        except ValueError:
+            month_labels.append(month)
+    
+    print(f"Final months to display: {months}")
+    print(f"Final counts: {counts}")
+    
+    if not months:
+        return html.Div([
+            html.P("No hi ha dades per mostrar", style={'textAlign': 'center', 'color': '#6c757d'})
+        ])
+    
+    # Create bar chart
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=month_labels,
+        y=counts,
+        name='Mostres per mes',
+        marker_color='#28a745'
+    ))
+    
+    fig.update_layout(
+        title={
+            'text': 'Evolució de mostres durant els últims 12 mesos',
+            'x': 0.5,
+            'xanchor': 'center',
+            'font': {'size': 16, 'color': '#2c3e50'}
+        },
+        xaxis_title={'text': 'Mes', 'font': {'weight': 'bold'}},
+        yaxis_title={'text': 'Nombre de mostres', 'font': {'weight': 'bold'}},
+        showlegend=False,
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        margin={'l': 40, 'r': 40, 't': 60, 'b': 60},
+        height=400,
+        font={'color': '#495057'},
+        xaxis={
+            'tickangle': -45,
+            'showline': True,
+            'linecolor': '#dee2e6',
+            'linewidth': 1
+        },
+        yaxis={
+            'dtick': 1,
+            'rangemode': 'tozero',
+            'showline': True,
+            'linecolor': '#dee2e6',
+            'linewidth': 1
+        }
+    )
+    
+    return dcc.Graph(
+        figure=fig,
+        config={'displayModeBar': False}
+    )
+
+def create_data_visualizations(samples):
+    """Create a section with data visualization charts"""
+    return html.Div([
+        html.H3("Anàlisi visual de les dades", 
+               style={'color': '#2c3e50', 'marginBottom': '2rem', 'textAlign': 'center'}),
+        
+        # Charts container
+        html.Div([
+            # Samples by location chart
+            html.Div([
+                create_samples_by_location_chart(samples)
+            ], style={
+                'backgroundColor': 'white',
+                'padding': '1.5rem',
+                'borderRadius': '10px',
+                'boxShadow': '0 2px 10px rgba(0,0,0,0.1)',
+                'marginBottom': '2rem'
+            }),
+            
+            # Samples by month chart
+            html.Div([
+                create_samples_by_month_chart(samples)
+            ], style={
+                'backgroundColor': 'white',
+                'padding': '1.5rem',
+                'borderRadius': '10px',
+                'boxShadow': '0 2px 10px rgba(0,0,0,0.1)'
+            })
+        ])
+    ], style={'marginBottom': '2rem'})
