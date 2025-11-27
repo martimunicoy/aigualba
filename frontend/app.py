@@ -15,7 +15,7 @@ from pages.browse import create_browse_page
 from pages.submit import create_submit_page
 from utils.helpers import (get_backend_url, fetch_parameters, create_parameter_card, create_data_table, 
                            submit_sample_data, validate_sample_data, fetch_samples, create_samples_table, create_sample_details,
-                           create_data_visualizations)
+                           create_data_visualizations, filter_samples_by_criteria, get_unique_locations)
 
 # Get backend URL
 BACKEND_URL = get_backend_url()
@@ -180,28 +180,79 @@ def update_home_parameters(n):
     
     return [create_parameter_card(param) for param in data]
 
+# Callback to populate location filter with unique locations
+@app.callback(
+    Output('location-filter', 'options'),
+    [Input('interval-browse', 'n_intervals')]
+)
+def populate_location_filter(n):
+    data = fetch_samples(BACKEND_URL)
+    locations = get_unique_locations(data)
+    options = [{'label': 'Totes les ubicacions', 'value': 'all'}]
+    options.extend([{'label': location, 'value': location} for location in locations])
+    return options
+
+# Callback to filter samples based on filter criteria
+@app.callback(
+    Output('filtered-samples', 'data'),
+    [Input('interval-browse', 'n_intervals'),
+     Input('date-filter-from', 'date'),
+     Input('date-filter-to', 'date'),
+     Input('location-filter', 'value'),
+     Input('clear-filters-btn', 'n_clicks')]
+)
+def filter_samples(n, date_from, date_to, location, clear_clicks):
+    ctx = dash.callback_context
+    
+    # Check if clear button was clicked
+    if ctx.triggered:
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        if button_id == 'clear-filters-btn':
+            # Return all samples without filters
+            data = fetch_samples(BACKEND_URL)
+            return data
+    
+    # Apply filters
+    data = fetch_samples(BACKEND_URL)
+    filtered_data = filter_samples_by_criteria(data, date_from, date_to, location)
+    return filtered_data
+
 # Callback for browse page samples table
 @app.callback(
     Output('samples-table', 'children'),
-    [Input('interval-browse', 'n_intervals'),
+    [Input('filtered-samples', 'data'),
      Input('table-current-page', 'data'),
      Input('table-page-size', 'data'),
      Input('table-sort-column', 'data'),
      Input('table-sort-order', 'data')]
 )
-def update_samples_table(n, current_page, page_size, sort_column, sort_order):
-    data = fetch_samples(BACKEND_URL)
+def update_samples_table(filtered_data, current_page, page_size, sort_column, sort_order):
+    data = filtered_data if filtered_data else []
     print(f"Table update - Page: {current_page}, Size: {page_size}, Sort: {sort_column}, Order: {sort_order}")
+    print(f"Filtered data count: {len(data)}")
     return create_samples_table(data, current_page, page_size, sort_column, sort_order)
 
 # Callback for data visualizations
 @app.callback(
     Output('data-visualizations', 'children'),
-    [Input('interval-browse', 'n_intervals')]
+    [Input('filtered-samples', 'data')]
 )
-def update_data_visualizations(n):
-    data = fetch_samples(BACKEND_URL)
+def update_data_visualizations(filtered_data):
+    data = filtered_data if filtered_data else []
     return create_data_visualizations(data)
+
+# Callback to clear filters
+@app.callback(
+    [Output('date-filter-from', 'date'),
+     Output('date-filter-to', 'date'),
+     Output('location-filter', 'value')],
+    [Input('clear-filters-btn', 'n_clicks')],
+    prevent_initial_call=True
+)
+def clear_filters(clear_clicks):
+    if clear_clicks:
+        return None, None, 'all'
+    return dash.no_update, dash.no_update, dash.no_update
 
 # Callback for table sorting
 @app.callback(

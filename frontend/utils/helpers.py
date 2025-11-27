@@ -14,6 +14,97 @@ def get_backend_url():
     """Get the backend URL from environment variables"""
     return os.getenv("BACKEND_URL", "http://localhost:8000")
 
+def format_date_catalan(date_obj, format_type='short'):
+    """Format date in Catalan language"""
+    catalan_months = {
+        1: 'gener', 2: 'febrer', 3: 'març', 4: 'abril', 5: 'maig', 6: 'juny',
+        7: 'juliol', 8: 'agost', 9: 'setembre', 10: 'octubre', 11: 'novembre', 12: 'desembre'
+    }
+    
+    catalan_months_abbr = {
+        1: 'gen', 2: 'feb', 3: 'mar', 4: 'abr', 5: 'mai', 6: 'jun',
+        7: 'jul', 8: 'ago', 9: 'set', 10: 'oct', 11: 'nov', 12: 'des'
+    }
+    
+    if format_type == 'short':
+        # Format: dd/mm/yyyy (numerical format doesn't need translation)
+        return date_obj.strftime('%d/%m/%Y')
+    elif format_type == 'long':
+        # Format: dd de month del yyyy
+        day = date_obj.day
+        month = catalan_months[date_obj.month]
+        year = date_obj.year
+        return f"{day} de {month} del {year}"
+    elif format_type == 'abbr':
+        # Format: abbr yyyy (for charts)
+        month_abbr = catalan_months_abbr[date_obj.month]
+        year = date_obj.year
+        return f"{month_abbr} {year}"
+    else:
+        return date_obj.strftime('%d/%m/%Y')
+
+def filter_samples_by_criteria(samples, date_from=None, date_to=None, location=None):
+    """Filter samples by date range and/or location"""
+    if not samples:
+        return []
+    
+    filtered_samples = samples.copy()
+    
+    # Filter by date range
+    if date_from or date_to:
+        date_filtered = []
+        for sample in filtered_samples:
+            sample_date_str = sample.get('data')
+            if sample_date_str:
+                try:
+                    sample_date = datetime.strptime(sample_date_str, '%Y-%m-%d')
+                    
+                    # Check date_from constraint
+                    if date_from:
+                        filter_date_from = datetime.strptime(date_from, '%Y-%m-%d')
+                        if sample_date < filter_date_from:
+                            continue
+                    
+                    # Check date_to constraint
+                    if date_to:
+                        filter_date_to = datetime.strptime(date_to, '%Y-%m-%d')
+                        if sample_date > filter_date_to:
+                            continue
+                    
+                    date_filtered.append(sample)
+                except ValueError:
+                    # Keep samples with invalid dates
+                    date_filtered.append(sample)
+            else:
+                # Keep samples without dates
+                date_filtered.append(sample)
+        
+        filtered_samples = date_filtered
+    
+    # Filter by location
+    if location and location != 'all':
+        location_filtered = []
+        for sample in filtered_samples:
+            sample_location = sample.get('punt_mostreig', '')
+            if sample_location == location:
+                location_filtered.append(sample)
+        filtered_samples = location_filtered
+    
+    return filtered_samples
+
+def get_unique_locations(samples):
+    """Get unique sampling locations from samples"""
+    if not samples:
+        return []
+    
+    locations = set()
+    for sample in samples:
+        location = sample.get('punt_mostreig')
+        if location:
+            locations.add(location)
+    
+    return sorted(list(locations))
+
 def fetch_parameters(backend_url):
     """Fetch water quality parameters from the backend API"""
     try:
@@ -64,6 +155,7 @@ def submit_sample_data(backend_url, sample_data):
 def validate_sample_data(sample_data):
     """Validate sample data before submission"""
     errors = []
+    warnings = []
     
     # Check required fields
     required_fields = ['data', 'punt_mostreig']
@@ -81,7 +173,24 @@ def validate_sample_data(sample_data):
             except ValueError:
                 errors.append(f"El camp {field.replace('_', ' ')} ha de ser un número")
     
-    return errors
+    # Check for potentially unusual values (warnings)
+    if sample_data.get('temperatura'):
+        try:
+            temp = float(sample_data['temperatura'])
+            if temp < 0 or temp > 40:
+                warnings.append(f"Temperatura inusual: {temp}°C")
+        except ValueError:
+            pass  # Already handled as error above
+    
+    if sample_data.get('ph'):
+        try:
+            ph_val = float(sample_data['ph'])
+            if ph_val < 6.0 or ph_val > 9.0:
+                warnings.append(f"Valor de pH fora del rang normal: {ph_val}")
+        except ValueError:
+            pass  # Already handled as error above
+    
+    return {'errors': errors, 'warnings': warnings}
 
 def create_parameter_card(parameter):
     """Create a parameter card component"""
@@ -203,7 +312,7 @@ def create_samples_table(samples, current_page=1, page_size=10, sort_column='dat
         if date_str and date_str != 'N/A':
             try:
                 date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-                formatted_date = date_obj.strftime('%d/%m/%Y')
+                formatted_date = format_date_catalan(date_obj, 'short')
             except ValueError:
                 formatted_date = date_str
         else:
@@ -250,13 +359,20 @@ def create_samples_table(samples, current_page=1, page_size=10, sort_column='dat
     # Create pagination controls
     pagination_controls = []
     
-    # Previous button
-    if current_page > 1:
-        pagination_controls.append(
-            html.Button("← Anterior", id='prev-page', 
-                       style={'margin': '0 0.5rem', 'padding': '0.5rem 1rem', 
-                             'backgroundColor': '#007bff', 'color': 'white', 'border': 'none', 'borderRadius': '4px'})
-        )
+    # Previous button - always render but disable if on first page
+    pagination_controls.append(
+        html.Button("← Anterior", id='pagination-prev', 
+                   disabled=current_page <= 1,
+                   style={
+                       'margin': '0 0.5rem', 
+                       'padding': '0.5rem 1rem', 
+                       'backgroundColor': '#6c757d' if current_page <= 1 else '#007bff', 
+                       'color': 'white', 
+                       'border': 'none', 
+                       'borderRadius': '4px',
+                       'cursor': 'not-allowed' if current_page <= 1 else 'pointer'
+                   })
+    )
     
     # Page info
     pagination_controls.append(
@@ -264,13 +380,41 @@ def create_samples_table(samples, current_page=1, page_size=10, sort_column='dat
                  style={'margin': '0 1rem', 'fontSize': '0.9rem', 'color': '#6c757d'})
     )
     
-    # Next button
-    if current_page < total_pages:
-        pagination_controls.append(
-            html.Button("Següent →", id='next-page',
-                       style={'margin': '0 0.5rem', 'padding': '0.5rem 1rem',
-                             'backgroundColor': '#007bff', 'color': 'white', 'border': 'none', 'borderRadius': '4px'})
-        )
+    # Page input for direct navigation
+    pagination_controls.append(
+        html.Div([
+            html.Label("Anar a la pàgina:", style={'fontSize': '0.9rem', 'marginRight': '0.5rem', 'color': '#6c757d'}),
+            dcc.Input(
+                id='page-input',
+                type='number',
+                min=1,
+                max=total_pages,
+                value=current_page,
+                style={
+                    'width': '60px',
+                    'padding': '0.25rem',
+                    'border': '1px solid #ced4da',
+                    'borderRadius': '4px',
+                    'textAlign': 'center'
+                }
+            )
+        ], style={'display': 'flex', 'alignItems': 'center', 'margin': '0 1rem'})
+    )
+    
+    # Next button - always render but disable if on last page
+    pagination_controls.append(
+        html.Button("Següent →", id='pagination-next',
+                   disabled=current_page >= total_pages,
+                   style={
+                       'margin': '0 0.5rem', 
+                       'padding': '0.5rem 1rem',
+                       'backgroundColor': '#6c757d' if current_page >= total_pages else '#007bff', 
+                       'color': 'white', 
+                       'border': 'none', 
+                       'borderRadius': '4px',
+                       'cursor': 'not-allowed' if current_page >= total_pages else 'pointer'
+                   })
+    )
     
     # Page size selector
     page_size_controls = [
@@ -327,7 +471,7 @@ def create_sample_details(sample):
     if date_str and date_str != 'N/A':
         try:
             date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-            formatted_date = date_obj.strftime('%d de %B del %Y')
+            formatted_date = format_date_catalan(date_obj, 'long')
         except ValueError:
             formatted_date = date_str
     else:
@@ -377,8 +521,8 @@ def create_sample_details(sample):
             
             param_items.append(
                 html.Tr([
-                    html.Td(label, style={'fontWeight': 'bold', 'padding': '0.5rem', 'borderBottom': '1px solid #dee2e6'}),
-                    html.Td(display_value, style={'padding': '0.5rem', 'borderBottom': '1px solid #dee2e6'})
+                    html.Td(label, style={'fontWeight': 'bold', 'padding': '0.5rem', 'borderBottom': '1px solid #dee2e6', 'textAlign': 'left'}),
+                    html.Td(display_value, style={'padding': '0.5rem', 'borderBottom': '1px solid #dee2e6', 'textAlign': 'right'})
                 ])
             )
         
@@ -388,26 +532,40 @@ def create_sample_details(sample):
         ])
     
     return html.Div([
-        # Header
         html.Div([
-            html.H1(f"Detalls de la Mostra #{sample.get('id', 'N/A')}", 
-                   style={'color': '#2c3e50', 'marginBottom': '0.5rem'}),
-            html.P(f"Recollida el {formatted_date} a {sample.get('punt_mostreig', 'ubicació desconeguda')}", 
-                  style={'color': '#6c757d', 'fontSize': '1.1rem', 'marginBottom': '2rem'})
-        ], style={'textAlign': 'center', 'marginBottom': '3rem'}),
-        
-        # Parameter sections
-        create_param_section("Informació Bàsica", basic_info),
-        create_param_section("Paràmetres Físics", physical_params),
-        create_param_section("Paràmetres Químics", chemical_params),
-        create_param_section("Paràmetres Biològics", biological_params),
-        
-        # Back link
-        html.Div([
-            dcc.Link("← Tornar a la llista", href="/browse", 
-                    style={'color': '#007bff', 'textDecoration': 'none', 'fontSize': '1.1rem'})
-        ], style={'textAlign': 'center', 'marginTop': '3rem'})
-    ])
+            html.Div([
+                # Header
+                html.Div([
+                    html.H1(f"Detalls de la Mostra #{sample.get('id', 'N/A')}", 
+                           style={'color': '#2c3e50', 'marginBottom': '0.5rem'}),
+                    html.P(f"Recollida el {formatted_date} a {sample.get('punt_mostreig', 'ubicació desconeguda')}", 
+                          style={'color': '#6c757d', 'fontSize': '1.1rem', 'marginBottom': '2rem'})
+                ], style={'textAlign': 'center', 'marginBottom': '3rem'}),
+                
+                # Parameter sections
+                create_param_section("Informació Bàsica", basic_info),
+                create_param_section("Paràmetres Físics", physical_params),
+                create_param_section("Paràmetres Químics", chemical_params),
+                create_param_section("Paràmetres Biològics", biological_params),
+                
+                # Back link
+                html.Div([
+                    dcc.Link("← Tornar a la llista", href="/browse", 
+                            style={'color': '#007bff', 'textDecoration': 'none', 'fontSize': '1.1rem'})
+                ], style={'textAlign': 'center', 'marginTop': '3rem'})
+            ], style={
+                'backgroundColor': 'white', 
+                'margin': '1rem 0', 
+                'padding': '2rem', 
+                'borderRadius': '10px', 
+                'boxShadow': '0 4px 15px rgba(0,0,0,0.1)'
+            })
+        ], style={
+            'maxWidth': '1200px', 
+            'margin': '0 auto', 
+            'padding': '2rem'
+        })
+    ], style={'backgroundColor': '#f8f9fa', 'minHeight': '80vh'})
 
 def create_samples_by_location_chart(samples):
     """Create a bar chart showing samples count by location"""
@@ -531,12 +689,12 @@ def create_samples_by_month_chart(samples):
     months = all_months
     counts = [monthly_counts[month] for month in months]
     
-    # Format month labels
+    # Format month labels in Catalan
     month_labels = []
     for month in months:
         try:
             date_obj = datetime.strptime(month, '%Y-%m')
-            month_labels.append(date_obj.strftime('%b %Y'))
+            month_labels.append(format_date_catalan(date_obj, 'abbr'))
         except ValueError:
             month_labels.append(month)
     
@@ -595,30 +753,20 @@ def create_samples_by_month_chart(samples):
 def create_data_visualizations(samples):
     """Create a section with data visualization charts"""
     return html.Div([
-        html.H3("Anàlisi visual de les dades", 
-               style={'color': '#2c3e50', 'marginBottom': '2rem', 'textAlign': 'center'}),
-        
         # Charts container
         html.Div([
             # Samples by location chart
             html.Div([
-                create_samples_by_location_chart(samples)
+                html.H3("Anàlisi visual de les dades", 
+                    style={'color': '#2c3e50', 'marginBottom': '2rem', 'textAlign': 'center'}),
+                create_samples_by_location_chart(samples),
+                create_samples_by_month_chart(samples)
             ], style={
                 'backgroundColor': 'white',
                 'padding': '1.5rem',
                 'borderRadius': '10px',
                 'boxShadow': '0 2px 10px rgba(0,0,0,0.1)',
                 'marginBottom': '2rem'
-            }),
-            
-            # Samples by month chart
-            html.Div([
-                create_samples_by_month_chart(samples)
-            ], style={
-                'backgroundColor': 'white',
-                'padding': '1.5rem',
-                'borderRadius': '10px',
-                'boxShadow': '0 2px 10px rgba(0,0,0,0.1)'
-            })
+            })            
         ])
     ], style={'marginBottom': '2rem'})
