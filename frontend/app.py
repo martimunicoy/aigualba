@@ -2,6 +2,7 @@ import dash
 from dash import html, dcc, Input, Output, State
 import sys
 import os
+import requests
 
 # Add current directory to Python path for imports
 sys.path.append('/app')
@@ -15,30 +16,95 @@ from pages.submit import create_submit_page
 from utils.helpers import (get_backend_url, fetch_parameters, create_parameter_card, create_data_table, 
                            submit_sample_data, validate_sample_data, fetch_samples, create_samples_table, create_sample_details)
 
+# Get backend URL
+BACKEND_URL = get_backend_url()
+
 def create_sample_detail_page(sample_id):
     """Create a sample detail page for a specific sample ID"""
-    # Try to get individual sample first, fall back to list if endpoint doesn't exist
+    sample_data = None
+    error_info = []
+    
+    # First, try to get all samples to see what's available
+    all_samples = []
+    available_ids = []
     try:
-        import requests
-        response = requests.get(f"{BACKEND_URL}/api/mostres/{sample_id}")
-        if response.status_code == 200:
-            sample_data = response.json()
-        else:
-            # Fallback to searching through all samples
-            samples = fetch_samples(BACKEND_URL)
-            sample_data = None
-            for sample in samples:
-                if str(sample.get('id')) == str(sample_id):
-                    sample_data = sample
-                    break
-    except:
-        # Fallback to searching through all samples
-        samples = fetch_samples(BACKEND_URL)
-        sample_data = None
-        for sample in samples:
+        all_samples = fetch_samples(BACKEND_URL)
+        available_ids = [str(s.get('id')) for s in all_samples if s.get('id') is not None]
+        error_info.append(f"Available sample IDs: {', '.join(available_ids) if available_ids else 'None'}")
+        error_info.append(f"Looking for ID: {sample_id}")
+        error_info.append(f"Total samples found: {len(all_samples)}")
+        
+        # Search through all samples
+        for sample in all_samples:
             if str(sample.get('id')) == str(sample_id):
                 sample_data = sample
+                error_info.append(f"Found sample in list")
                 break
+        
+        if not sample_data and available_ids:
+            error_info.append(f"Sample {sample_id} not found in available samples")
+            
+    except Exception as e:
+        error_info.append(f"Error fetching samples: {str(e)}")
+    
+    # If not found, try individual endpoint as backup
+    if not sample_data:
+        try:
+            response = requests.get(f"{BACKEND_URL}/api/mostres/{sample_id}")
+            error_info.append(f"Individual endpoint status: {response.status_code}")
+            if response.status_code == 200:
+                sample_data = response.json()
+                error_info.append(f"Got sample from individual endpoint")
+            else:
+                error_info.append(f"Individual endpoint error: {response.text}")
+        except Exception as e:
+            error_info.append(f"Individual endpoint exception: {str(e)}")
+    
+    if not sample_data:
+        return html.Div([
+            html.Div([
+                html.H2("Error carregant la mostra", style={'color': '#e74c3c', 'textAlign': 'center'}),
+                html.P(f"No s'ha pogut carregar la mostra amb ID: {sample_id}", 
+                      style={'textAlign': 'center', 'marginBottom': '2rem'}),
+                
+                # Connection diagnostics
+                html.Div([
+                    html.H4("Diagnòstic de connexió:", style={'color': '#6c757d', 'marginBottom': '1rem'}),
+                    html.Ul([html.Li(info, style={'marginBottom': '0.5rem'}) for info in error_info], 
+                           style={'textAlign': 'left', 'color': '#6c757d', 'fontSize': '0.9rem', 'lineHeight': '1.4'})
+                ], style={'marginBottom': '2rem', 'padding': '1rem', 'backgroundColor': '#f8f9fa', 'borderRadius': '6px'}),
+                
+                # Available samples if any
+                (html.Div([
+                    html.H4("Mostres disponibles:", style={'color': '#28a745', 'marginBottom': '1rem'}),
+                    html.Div([
+                        html.Div([
+                            dcc.Link(f"Mostra {sid}", href=f"/browse/sample/{sid}", 
+                                   style={'color': '#fff', 'textDecoration': 'none', 'padding': '0.5rem 1rem', 
+                                         'backgroundColor': '#007bff', 'borderRadius': '4px', 'display': 'inline-block'})
+                        ], style={'margin': '0.5rem'}) 
+                        for sid in available_ids[:5]  # Show first 5 samples
+                    ], style={'display': 'flex', 'flexWrap': 'wrap', 'justifyContent': 'center'})
+                ], style={'marginBottom': '2rem'}) if available_ids else 
+                 html.Div([
+                     html.P("No hi ha mostres disponibles a la base de dades", 
+                           style={'color': '#dc3545', 'textAlign': 'center', 'fontStyle': 'italic'})
+                 ], style={'marginBottom': '2rem'})),
+                
+                html.Div([
+                    dcc.Link("← Tornar a la llista", href="/browse", 
+                            style={'color': '#fff', 'textDecoration': 'none', 'fontSize': '1.1rem',
+                                  'padding': '0.75rem 1.5rem', 'backgroundColor': '#6c757d', 'borderRadius': '6px'})
+                ], style={'textAlign': 'center'})
+            ], style={
+                'maxWidth': '900px', 
+                'margin': '0 auto', 
+                'padding': '4rem 2rem',
+                'backgroundColor': 'white',
+                'borderRadius': '10px',
+                'boxShadow': '0 4px 15px rgba(0,0,0,0.1)'
+            })
+        ], style={'backgroundColor': '#f8f9fa', 'minHeight': '80vh', 'paddingTop': '4rem'})
     
     return html.Div([
         html.Div([
@@ -53,15 +119,16 @@ def create_sample_detail_page(sample_id):
 # Initialize Dash app
 app = dash.Dash(__name__, suppress_callback_exceptions=True, assets_folder='assets')
 
-# Get backend URL
-BACKEND_URL = get_backend_url()
-
 # Main app layout with URL routing
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     create_navbar(),
     html.Div(id='page-content')
 ], style={'fontFamily': 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', 'margin': '0', 'padding': '0', 'backgroundColor': '#f5f5f5'})
+
+# Enable URL routing
+app.title = "Aigualba - Qualitat de l'aigua"
+app.config.suppress_callback_exceptions = True
 
 # Callback for URL routing
 @app.callback(Output('page-content', 'children'),
@@ -80,7 +147,11 @@ def display_page(pathname):
             return create_sample_detail_page(sample_id)
         except Exception as e:
             print(f"Error loading sample detail: {e}")
-            return create_browse_page()
+            return html.Div([
+                html.H2("Error loading sample"),
+                html.P(f"Could not load sample {pathname.split('/')[-1]}"),
+                html.A("Return to browse", href="/browse")
+            ])
     elif pathname and pathname.startswith('/browse/') and len(pathname.split('/')) > 2:
         # Fallback for old URL format /browse/123
         try:
@@ -88,7 +159,11 @@ def display_page(pathname):
             return create_sample_detail_page(sample_id)
         except Exception as e:
             print(f"Error loading sample detail: {e}")
-            return create_browse_page()
+            return html.Div([
+                html.H2("Error loading sample"),
+                html.P(f"Could not load sample {pathname.split('/')[-1]}"),
+                html.A("Return to browse", href="/browse")
+            ])
     else:
         return create_home_page()
 
@@ -115,6 +190,7 @@ def update_home_parameters(n):
 )
 def update_samples_table(n, current_page, page_size, sort_column, sort_order):
     data = fetch_samples(BACKEND_URL)
+    print(f"Table update - Page: {current_page}, Size: {page_size}, Sort: {sort_column}, Order: {sort_order}")
     return create_samples_table(data, current_page, page_size, sort_column, sort_order)
 
 # Callback for table sorting
@@ -181,9 +257,11 @@ def handle_pagination(prev_clicks, next_clicks, page_input, current_page):
     [Output('table-page-size', 'data'),
      Output('table-current-page', 'data', allow_duplicate=True)],
     [Input('page-size-dropdown', 'value')],
+    [State('table-sort-column', 'data'),
+     State('table-sort-order', 'data')],
     prevent_initial_call=True
 )
-def update_page_size(page_size):
+def update_page_size(page_size, sort_column, sort_order):
     return page_size, 1  # Reset to page 1 when changing page size
 
 # Callback for navigation buttons on home page
