@@ -674,6 +674,69 @@ body {
     box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
+.form-dropdown-aligned {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-dropdown-aligned .Select-control {
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #34495e;
+    background-color: white;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+.form-dropdown-aligned .Select-control:hover {
+    border-color: #bdc3c7;
+}
+
+.form-dropdown-aligned .Select-control.is-focused {
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-dropdown-aligned .Select-placeholder {
+    color: #7f8c8d;
+    font-size: 1rem;
+}
+
+.form-dropdown-aligned .Select-value-label {
+    color: #34495e !important;
+    font-size: 1rem;
+}
+
+.form-dropdown-aligned .Select-arrow {
+    border-top-color: #7f8c8d;
+}
+
+.form-dropdown-aligned .Select-menu-outer {
+    border: 2px solid #e0e0e0;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.form-dropdown-aligned .Select-option {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    color: #34495e;
+    background-color: white;
+}
+
+.form-dropdown-aligned .Select-option:hover {
+    background-color: #f8f9fa;
+    color: #2c3e50;
+}
+
+.form-dropdown-aligned .Select-option.is-focused {
+    background-color: #3498db;
+    color: white;
+}
+
 .section-note {
     font-style: italic;
     color: #7f8c8d;

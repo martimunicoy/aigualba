@@ -78,11 +78,20 @@ def create_submit_page():
                 ], className='form-row-aligned'),
                 html.Div([
                     html.Label("Punt de mostreig *", className='form-label-aligned'),
-                    dcc.Input(
+                    dcc.Dropdown(
                         id="punt-mostreig",
-                        type="text",
-                        placeholder="ex. Dipòsit principal, Xarxa distribució zona A",
-                        className='form-input-aligned'
+                        options=[
+                            {'label': 'Dipòsit Vell Can Figueres', 'value': 'Dipòsit Vell Can Figueres'},
+                            {'label': 'Dipòsit Nou Can Figueres', 'value': 'Dipòsit Nou Can Figueres'},
+                            {'label': 'Font de la Plaça', 'value': 'Font de la Plaça'},
+                            {'label': 'Font Masia Can Figueres', 'value': 'Font Masia Can Figueres'},
+                            {'label': 'Dipòsit Royal Park 1', 'value': 'Dipòsit Royal Park 1'},
+                            {'label': 'Dipòsit Royal Park 2', 'value': 'Dipòsit Royal Park 2'},
+                            {'label': 'Dipòsit Can Pla', 'value': 'Dipòsit Can Pla'}
+                        ],
+                        placeholder="Selecciona punt de mostreig",
+                        className='form-dropdown-aligned',
+                        clearable=False
                     )
                 ], className='form-row-aligned')
             ]),
