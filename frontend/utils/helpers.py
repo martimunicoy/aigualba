@@ -351,15 +351,96 @@ def create_latest_sample_summary(sample):
     # Calculate suma haloacetics
     suma_haloacetics = calculate_suma_haloacetics(sample)
 
-    # Define subset of key parameters to display
-    key_params = [
-        ('Data de recollida', formatted_date),
-        ('Punt de mostreig', sample.get('punt_mostreig', 'No mesurat')),
-        ('Temperatura', f"{sample.get('temperatura')} °C" if sample.get('temperatura') else 'No mesurat'),
-        ('pH', sample.get('ph') if sample.get('ph') else 'No mesurat'),
-        ('Clor lliure', f"{sample.get('clor_lliure')} mg/L" if sample.get('clor_lliure') else 'No mesurat'),
-        ('E. coli', f"{sample.get('recompte_escherichia_coli')} NPM/100mL" if sample.get('recompte_escherichia_coli') else 'No mesurat'),
-        ('Suma 5 haloacètics', f"{suma_haloacetics:.2f} μg/L" if suma_haloacetics is not None else 'No mesurat')
+    # Import thresholds for visual ranges
+    from .thresholds import get_threshold
+    
+    def create_home_parameter_bar(parameter_key, value):
+        """Create a simplified parameter bar for home page display"""
+        if value is None:
+            return html.Div("No mesurat", style={'textAlign': 'center', 'color': '#6c757d'})
+        
+        threshold = get_threshold(parameter_key)
+        if not threshold:
+            return html.Div(f"{value}", style={'textAlign': 'center', 'color': '#2c3e50', 'fontWeight': '500'})
+        
+        # Calculate position and color
+        min_val = float(threshold['min'])
+        max_val = float(threshold['max'])
+        
+        if min_val > 0:
+            # Range-based parameters
+            if value < min_val or value > max_val:
+                dot_color = '#dc3545'  # Red - out of range
+                position_percentage = 0 if value < min_val else 100
+            else:
+                dot_color = '#28a745'  # Green - within range
+                position_percentage = ((value - min_val) / (max_val - min_val)) * 100
+        else:
+            # Threshold-based parameters
+            position_percentage = min((value / max_val) * 100, 100)
+            if position_percentage < 100:
+                dot_color = '#28a745'  # Green
+            else:
+                dot_color = '#dc3545'  # Red
+        
+        # Format value display
+        if parameter_key == 'ph':
+            value_display = f"{value:.1f}"
+        elif 'clor' in parameter_key:
+            value_display = f"{value:.3f}"
+        else:
+            value_display = f"{value:.2f}"
+        
+        return html.Div([
+            html.Div([
+                html.Span(f"{value_display} {threshold['unit']}", style={'fontSize': '1rem', 'fontWeight': '500', 'color': '#2c3e50'})
+            ], style={'textAlign': 'center', 'marginBottom': '8px'}),
+            html.Div([
+                # Parameter indicator dot
+                html.Div(style={
+                    'position': 'absolute',
+                    'left': f'{position_percentage}%',
+                    'top': '50%',
+                    'transform': 'translate(-50%, -50%)',
+                    'width': '10px',
+                    'height': '10px',
+                    'backgroundColor': dot_color,
+                    'borderRadius': '50%',
+                    'border': '2px solid white',
+                    'boxShadow': '0 2px 4px rgba(0,0,0,0.2)',
+                    'zIndex': '1'
+                })
+            ], style={
+                'width': '100%',
+                'maxWidth': '200px',
+                'height': '16px',
+                'backgroundColor': '#e9ecef',
+                'borderRadius': '8px',
+                'border': '1px solid #dee2e6',
+                'margin': '0 auto',
+                'position': 'relative'
+            }),
+            html.Div([
+                html.Span(f"{threshold['min']}", style={'fontSize': '0.7em', 'color': '#6c757d'}),
+                html.Span(f"{threshold['max']}", style={'fontSize': '0.7em', 'color': '#6c757d'})
+            ], style={
+                'display': 'flex',
+                'justifyContent': 'space-between',
+                'marginTop': '4px',
+                'maxWidth': '200px',
+                'margin': '4px auto 0 auto'
+            })
+        ])
+    
+    # Define parameters with their keys for visual range bars
+    key_params_data = [
+        ('Data de recollida', formatted_date, None, None),
+        ('Punt de mostreig', sample.get('punt_mostreig', 'No mesurat'), None, None),
+        ('Temperatura', sample.get('temperatura'), 'temperatura', '°C'),
+        ('pH', sample.get('ph'), 'ph', None),
+        ('Clor lliure', sample.get('clor_lliure'), 'clor_lliure', None),
+        ('Terbolesa', sample.get('terbolesa'), 'terbolesa', None),
+        ('Suma 5 haloacètics', suma_haloacetics, 'suma_haloacetics', None)
     ]
     
     return html.Div([
@@ -369,22 +450,26 @@ def create_latest_sample_summary(sample):
         html.Div([
             html.Div([
                 html.Div([
-                    html.H5(label, style={'color': '#495057', 'margin': '0', 'fontSize': '0.9rem'}),
-                    html.P(value, style={'color': '#2c3e50', 'margin': '0.25rem 0 0 0', 'fontSize': '1.1rem', 'fontWeight': '500'})
+                    html.H5(label, style={'color': '#495057', 'margin': '0 0 0.5rem 0', 'fontSize': '0.9rem', 'textAlign': 'center'}),
+                    # Display visual range bar if parameter has thresholds, otherwise show text value
+                    (create_home_parameter_bar(param_key, value) if param_key and value is not None and get_threshold(param_key) 
+                     else html.P(
+                         f"{value} {unit}" if value is not None and unit else (value if value is not None else 'No mesurat'), 
+                         style={'color': '#2c3e50', 'margin': '0', 'fontSize': '1.1rem', 'fontWeight': '500', 'textAlign': 'center'}
+                     ))
                 ], style={
                     'backgroundColor': 'white',
                     'padding': '1rem',
                     'borderRadius': '6px',
                     'border': '1px solid #e3e6ea',
-                    'textAlign': 'center',
-                    'minHeight': '80px',
+                    'minHeight': '120px',
                     'display': 'flex',
                     'flexDirection': 'column',
                     'justifyContent': 'center',
                     'boxShadow': '0 1px 3px rgba(0,0,0,0.08)',
                     'transition': 'transform 0.2s ease, box-shadow 0.2s ease'
                 })
-                for label, value in key_params
+                for label, value, param_key, unit in key_params_data
             ], style={
                 'display': 'grid',
                 'gridTemplateColumns': 'repeat(auto-fit, minmax(180px, 1fr))',

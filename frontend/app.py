@@ -475,6 +475,8 @@ def handle_sample_submission(n_clicks, sample_date, punt_mostreig, temperatura, 
     if not n_clicks or n_clicks == 0:
         return dash.no_update, dash.no_update
     
+
+    
     # Prepare sample data
     sample_data = {
         'data': sample_date,
