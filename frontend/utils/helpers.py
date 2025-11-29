@@ -172,6 +172,22 @@ def fetch_latest_sample_by_location(backend_url, location):
         print(f"Error fetching latest sample for {location}: {e}")
         return None
 
+def fetch_latest_sample_any_location(backend_url):
+    """Fetch the latest sample from any location"""
+    try:
+        samples = fetch_samples(backend_url)
+        if not samples:
+            return None
+            
+        # Sort all samples by date descending to get the most recent
+        sorted_samples = sorted(samples,
+                                key=lambda x: x.get('data', ''), 
+                                reverse=True)
+        return sorted_samples[0] if sorted_samples else None
+    except Exception as e:
+        print(f"Error fetching latest sample from any location: {e}")
+        return None
+
 def calculate_suma_haloacetics(sample):
     """Calculate the sum of the five haloacetic acids"""
     acids = [
@@ -354,6 +370,25 @@ def create_latest_sample_summary(sample):
     # Import thresholds for visual ranges
     from .thresholds import get_threshold
     
+    def is_parameter_out_of_range(param_key, value):
+        """Check if a parameter value is outside the recommended range"""
+        if not param_key or value is None:
+            return False
+        
+        threshold = get_threshold(param_key)
+        if not threshold:
+            return False
+        
+        min_val = float(threshold['min'])
+        max_val = float(threshold['max'])
+        
+        if min_val > 0:
+            # Range-based parameters
+            return value < min_val or value > max_val
+        else:
+            # Threshold-based parameters
+            return value > max_val
+    
     def create_home_parameter_bar(parameter_key, value):
         """Create a simplified parameter bar for home page display"""
         if value is None:
@@ -443,6 +478,43 @@ def create_latest_sample_summary(sample):
         ('Suma 5 haloacètics', suma_haloacetics, 'suma_haloacetics', None)
     ]
     
+    # Check if any parameters are out of range
+    has_out_of_range = any(is_parameter_out_of_range(param_key, value) for _, value, param_key, _ in key_params_data if param_key)
+    
+    # Create status message
+    if has_out_of_range:
+        status_message = html.Div([
+            html.Div([
+                html.I(className="fas fa-exclamation-triangle", style={'marginRight': '8px', 'fontSize': '1.1rem'}),
+                html.Span("ATENCIÓ: Alguns paràmetres estan fora dels valors recomanats", style={'fontWeight': '600'})
+            ], style={'color': '#dc3545', 'fontSize': '1rem', 'textAlign': 'center', 'marginBottom': '0.5rem'}),
+            html.P([
+                "Els paràmetres destacats en vermell superen els límits establerts per la normativa. ",
+                "Es recomana contactar amb les autoritats sanitàries locals."
+            ], style={'color': '#721c24', 'fontSize': '0.9rem', 'margin': '0', 'textAlign': 'center', 'lineHeight': '1.4'})
+        ], style={
+            'backgroundColor': '#f8d7da',
+            'border': '1px solid #f5c6cb',
+            'borderRadius': '6px',
+            'padding': '1rem',
+            'margin': '1rem 0'
+        })
+    else:
+        status_message = html.Div([
+            html.Div([
+                html.I(className="fas fa-check-circle", style={'marginRight': '8px', 'fontSize': '1.1rem'}),
+                html.Span("Tots els paràmetres dins dels valors recomanats", style={'fontWeight': '600'})
+            ], style={'color': '#155724', 'fontSize': '1rem', 'textAlign': 'center', 'marginBottom': '0.5rem'}),
+            html.P("La qualitat de l'aigua compleix amb els estàndards establerts per la normativa vigent.",
+                  style={'color': '#155724', 'fontSize': '0.9rem', 'margin': '0', 'textAlign': 'center'})
+        ], style={
+            'backgroundColor': '#d4edda',
+            'border': '1px solid #c3e6cb',
+            'borderRadius': '6px',
+            'padding': '1rem',
+            'margin': '1rem 0'
+        })
+    
     return html.Div([
         html.H3("Darrera mostra de Gualba", 
                 style={'color': '#2c3e50', 'marginBottom': '1.5rem', 'textAlign': 'center'}),
@@ -458,15 +530,15 @@ def create_latest_sample_summary(sample):
                          style={'color': '#2c3e50', 'margin': '0', 'fontSize': '1.1rem', 'fontWeight': '500', 'textAlign': 'center'}
                      ))
                 ], style={
-                    'backgroundColor': 'white',
+                    'backgroundColor': '#fef2f2' if is_parameter_out_of_range(param_key, value) else 'white',
                     'padding': '1rem',
                     'borderRadius': '6px',
-                    'border': '1px solid #e3e6ea',
+                    'border': '2px solid #dc3545' if is_parameter_out_of_range(param_key, value) else '1px solid #e3e6ea',
                     'minHeight': '120px',
                     'display': 'flex',
                     'flexDirection': 'column',
                     'justifyContent': 'center',
-                    'boxShadow': '0 1px 3px rgba(0,0,0,0.08)',
+                    'boxShadow': '0 2px 8px rgba(220, 53, 69, 0.15)' if is_parameter_out_of_range(param_key, value) else '0 1px 3px rgba(0,0,0,0.08)',
                     'transition': 'transform 0.2s ease, box-shadow 0.2s ease'
                 })
                 for label, value, param_key, unit in key_params_data
@@ -477,6 +549,9 @@ def create_latest_sample_summary(sample):
                 'width': '100%',
                 'gridAutoRows': 'minmax(80px, auto)'
             }),
+            
+            # Status message for parameter ranges
+            status_message,
             
             html.Div([
                 html.Button("Veure detalls complets →",

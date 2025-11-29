@@ -17,7 +17,8 @@ from pages.visualize import create_visualize_page
 from utils.helpers import (get_backend_url, fetch_parameters, create_parameter_card, create_data_table, 
                            submit_sample_data, validate_sample_data, fetch_samples, create_samples_table, create_sample_details,
                            create_data_visualizations, filter_samples_by_criteria, get_unique_locations, 
-                           fetch_latest_gualba_sample, create_latest_sample_summary, fetch_latest_sample_by_location)
+                           fetch_latest_gualba_sample, create_latest_sample_summary, fetch_latest_sample_by_location,
+                           fetch_latest_sample_any_location)
 
 # Get backend URL
 BACKEND_URL = get_backend_url()
@@ -203,9 +204,13 @@ def display_page(pathname, search):
 def populate_home_location_selector(n):
     data = fetch_samples(BACKEND_URL)
     locations = get_unique_locations(data)
-    options = [{'label': location, 'value': location} for location in locations]
-    # Set default to first location if available
-    default_value = locations[0] if locations else None
+    
+    # Add 'any location' option at the beginning
+    options = [{'label': 'Qualsevol ubicació (més recent)', 'value': 'any_location'}]
+    options.extend([{'label': location, 'value': location} for location in locations])
+    
+    # Set default to 'any location'
+    default_value = 'any_location'
     return options, default_value
 
 # Callback for home page live parameters
@@ -217,21 +222,25 @@ def populate_home_location_selector(n):
      Input('home-location-selector', 'value')]
 )
 def update_home_parameters(n, selected_location):
-    # Fetch the latest sample from selected location
-    if selected_location:
+    # Fetch the latest sample based on selection
+    if selected_location == 'any_location':
+        latest_sample = fetch_latest_sample_any_location(BACKEND_URL)
+        location_display = ""
+    elif selected_location:
         latest_sample = fetch_latest_sample_by_location(BACKEND_URL, selected_location)
+        location_display = f" de {selected_location}"
     else:
         # Fallback to any latest sample if no location selected
-        latest_sample = fetch_latest_sample_by_location(BACKEND_URL, None)
+        latest_sample = fetch_latest_sample_any_location(BACKEND_URL)
+        location_display = ""
     
     if latest_sample:
         sample_id = latest_sample.get('id')
         return create_latest_sample_summary(latest_sample), sample_id, selected_location
     else:
-        location_text = f"de {selected_location}" if selected_location else ""
         return html.Div([
-            html.H3(f"Darrera mostra {location_text}", style={'color': '#2c3e50', 'marginBottom': '1rem'}),
-            html.P(f"No s'han trobat mostres recents{' de ' + selected_location if selected_location else ''}", 
+            html.H3(f"Darrera mostra{location_display}", style={'color': '#2c3e50', 'marginBottom': '1rem'}),
+            html.P(f"No s'han trobat mostres recents{location_display}", 
                   style={'color': '#6c757d', 'fontStyle': 'italic'})
         ], style={
             'backgroundColor': '#f8f9fa',
