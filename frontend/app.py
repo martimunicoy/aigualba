@@ -13,6 +13,7 @@ from pages.home import create_home_page
 from pages.about import create_about_page
 from pages.browse import create_browse_page
 from pages.submit import create_submit_page
+from pages.visualize import create_visualize_page
 from utils.helpers import (get_backend_url, fetch_parameters, create_parameter_card, create_data_table, 
                            submit_sample_data, validate_sample_data, fetch_samples, create_samples_table, create_sample_details,
                            create_data_visualizations, filter_samples_by_criteria, get_unique_locations, 
@@ -140,6 +141,8 @@ def display_page(pathname, search):
         return create_about_page()
     elif pathname == '/browse':
         return create_browse_page()
+    elif pathname == '/visualize':
+        return create_visualize_page()
     elif pathname == '/submit':
         return create_submit_page()
     elif pathname and pathname.startswith('/sample/'):
@@ -584,6 +587,367 @@ def handle_sample_submission(n_clicks, sample_date, punt_mostreig, temperatura, 
             html.Div(error_content),
             "submit-status show error"
         )
+
+# Visualization page callbacks
+@app.callback(
+    Output('location-selector', 'options'),
+    Input('parameter-selector', 'value')
+)
+def update_location_options(selected_parameter):
+    """Update the location selector options based on available data"""
+    try:
+        samples = fetch_samples(BACKEND_URL)
+        if not samples:
+            return [{'label': 'Tots els punts', 'value': 'all'}]
+        
+        # Get unique locations that have data for the selected parameter
+        locations = set()
+        for sample in samples:
+            # Special handling for calculated fields
+            if selected_parameter == 'suma_haloacetics':
+                from utils.helpers import calculate_suma_haloacetics
+                param_value = calculate_suma_haloacetics(sample)
+            else:
+                param_value = sample.get(selected_parameter)
+                
+            if param_value is not None and sample.get('punt_mostreig'):
+                locations.add(sample.get('punt_mostreig'))
+        
+        options = [{'label': 'Tots els punts', 'value': 'all'}]
+        for location in sorted(locations):
+            options.append({'label': location, 'value': location})
+        
+        return options
+    except:
+        return [{'label': 'Tots els punts', 'value': 'all'}]
+
+@app.callback(
+    [Output('time-series-chart', 'figure'),
+     Output('chart-title', 'children'),
+     Output('chart-info', 'children')],
+    [Input('parameter-selector', 'value'),
+     Input('location-selector', 'value')]
+)
+def update_chart(selected_parameter, selected_location):
+    """Update the time series chart based on selected parameter and location"""
+    try:
+        # Import plotly here to handle potential import issues
+        import plotly.graph_objects as go
+        import plotly.express as px
+        from datetime import datetime
+        from pages.visualize import get_parameter_label
+        from utils.thresholds import get_threshold
+        
+        # Check if parameter is selected
+        if not selected_parameter:
+            empty_fig = go.Figure()
+            empty_fig.add_annotation(
+                text="Selecciona un paràmetre i punt de mostreig de la llista per generar el gràfic",
+                xref="paper", yref="paper",
+                x=0.5, y=0.5, xanchor='center', yanchor='middle',
+                showarrow=False, font=dict(size=16, color="gray")
+            )
+            empty_fig.update_layout(
+                xaxis=dict(visible=False),
+                yaxis=dict(visible=False),
+                plot_bgcolor='white'
+            )
+            return empty_fig, "Selecciona un paràmetre", "Selecciona un paràmetre per visualitzar les dades"
+        
+        # Fetch samples
+        samples = fetch_samples(BACKEND_URL)
+        if not samples:
+            empty_fig = go.Figure()
+            empty_fig.add_annotation(
+                text="No hi ha dades disponibles",
+                xref="paper", yref="paper",
+                x=0.5, y=0.5, xanchor='center', yanchor='middle',
+                showarrow=False, font=dict(size=16, color="gray")
+            )
+            empty_fig.update_layout(
+                xaxis=dict(visible=False),
+                yaxis=dict(visible=False),
+                plot_bgcolor='white'
+            )
+            return empty_fig, "Gràfic de dades", ""
+        
+        # Filter samples based on parameter availability and location
+        filtered_samples = []
+        for sample in samples:
+            # Special handling for calculated fields
+            if selected_parameter == 'suma_haloacetics':
+                from utils.helpers import calculate_suma_haloacetics
+                param_value = calculate_suma_haloacetics(sample)
+            else:
+                param_value = sample.get(selected_parameter)
+            
+            # Check if sample has the parameter and it's not None/empty
+            if param_value is not None and param_value != '':
+                # Check location filter
+                if selected_location == 'all' or sample.get('punt_mostreig') == selected_location:
+                    # Check if sample has a valid date
+                    if sample.get('data'):
+                        # Add the calculated value to the sample for later use
+                        if selected_parameter == 'suma_haloacetics':
+                            sample_copy = sample.copy()
+                            sample_copy[selected_parameter] = param_value
+                            filtered_samples.append(sample_copy)
+                        else:
+                            filtered_samples.append(sample)
+        
+        if not filtered_samples:
+            empty_fig = go.Figure()
+            empty_fig.add_annotation(
+                text=f"No hi ha dades disponibles per al paràmetre seleccionat{' i punt de mostreig' if selected_location != 'all' else ''}",
+                xref="paper", yref="paper",
+                x=0.5, y=0.5, xanchor='center', yanchor='middle',
+                showarrow=False, font=dict(size=16, color="gray")
+            )
+            empty_fig.update_layout(
+                xaxis=dict(visible=False),
+                yaxis=dict(visible=False),
+                plot_bgcolor='white'
+            )
+            return empty_fig, get_parameter_label(selected_parameter), "No hi ha dades disponibles"
+        
+        # Prepare data for plotting
+        dates = []
+        values = []
+        locations = []
+        
+        for sample in filtered_samples:
+            try:
+                # Parse date
+                date_str = sample.get('data')
+                if date_str:
+                    date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+                    dates.append(date_obj)
+                    values.append(float(sample.get(selected_parameter)))
+                    locations.append(sample.get('punt_mostreig', 'Desconegut'))
+            except (ValueError, TypeError):
+                continue
+        
+        if not dates:
+            empty_fig = go.Figure()
+            empty_fig.add_annotation(
+                text="No es poden processar les dades disponibles",
+                xref="paper", yref="paper",
+                x=0.5, y=0.5, xanchor='center', yanchor='middle',
+                showarrow=False, font=dict(size=16, color="gray")
+            )
+            empty_fig.update_layout(
+                xaxis=dict(visible=False),
+                yaxis=dict(visible=False),
+                plot_bgcolor='white'
+            )
+            return empty_fig, get_parameter_label(selected_parameter), "Error processant les dades"
+        
+        # Create the figure
+        fig = go.Figure()
+        
+        if selected_location == 'all':
+            # Group by location and create separate traces
+            location_groups = {}
+            for date, value, location in zip(dates, values, locations):
+                if location not in location_groups:
+                    location_groups[location] = {'dates': [], 'values': []}
+                location_groups[location]['dates'].append(date)
+                location_groups[location]['values'].append(value)
+            
+            # Add traces for each location
+            colors = px.colors.qualitative.Set2
+            for i, (location, data) in enumerate(location_groups.items()):
+                color = colors[i % len(colors)]
+                fig.add_trace(go.Scatter(
+                    x=data['dates'],
+                    y=data['values'],
+                    mode='lines+markers',
+                    name=location,
+                    line=dict(color=color, width=2),
+                    marker=dict(size=6, color=color),
+                    hovertemplate=f'<b>{location}</b><br>' +
+                                  'Data: %{x|%d/%m/%Y}<br>' +
+                                  f'{get_parameter_label(selected_parameter)}: %{{y}}<br>' +
+                                  '<extra></extra>'
+                ))
+        else:
+            # Single location
+            fig.add_trace(go.Scatter(
+                x=dates,
+                y=values,
+                mode='lines+markers',
+                name=selected_location,
+                line=dict(color='#3498db', width=3),
+                marker=dict(size=8, color='#3498db'),
+                hovertemplate=f'<b>{selected_location}</b><br>' +
+                              'Data: %{x|%d/%m/%Y}<br>' +
+                              f'{get_parameter_label(selected_parameter)}: %{{y}}<br>' +
+                              '<extra></extra>'
+            ))
+        
+        # Add threshold lines as scatter traces (renders immediately)
+        threshold = get_threshold(selected_parameter)
+        if threshold and dates:  # Only add if we have data points
+            min_val = float(threshold['min'])
+            max_val = float(threshold['max'])
+            
+            # Create x-axis range for threshold lines
+            x_min = min(dates)
+            x_max = max(dates)
+            threshold_x = [x_min, x_max]
+            
+            # Add horizontal lines for thresholds as scatter traces
+            if min_val > 0:  # Range-based parameter (has meaningful minimum)
+                fig.add_trace(go.Scatter(
+                    x=threshold_x,
+                    y=[min_val, min_val],
+                    mode='lines',
+                    line=dict(color='red', width=2, dash='dash'),
+                    name=f'Límit mínim ({min_val} {threshold["unit"]})',
+                    showlegend=False,
+                    hovertemplate=f'Límit mínim: {min_val} {threshold["unit"]}<extra></extra>'
+                ))
+                fig.add_trace(go.Scatter(
+                    x=threshold_x,
+                    y=[max_val, max_val],
+                    mode='lines',
+                    line=dict(color='red', width=2, dash='dash'),
+                    name=f'Màxim permès ({max_val} {threshold["unit"]})',
+                    showlegend=False,
+                    hovertemplate=f'Màxim permès: {max_val} {threshold["unit"]}<extra></extra>'
+                ))
+                
+                # Add text annotations for threshold lines
+                fig.add_annotation(
+                    x=x_max,
+                    y=min_val,
+                    text=f"Límit mínim: {min_val} {threshold['unit']}",
+                    showarrow=False,
+                    xanchor="right",
+                    yanchor="top",
+                    bgcolor="rgba(255,255,255,0.8)",
+                    bordercolor="red",
+                    borderwidth=1,
+                    font=dict(color="red")
+                )
+                fig.add_annotation(
+                    x=x_max,
+                    y=max_val,
+                    text=f"Límit màxim: {max_val} {threshold['unit']}",
+                    showarrow=False,
+                    xanchor="right",
+                    yanchor="bottom",
+                    bgcolor="rgba(255,255,255,0.8)",
+                    bordercolor="red",
+                    borderwidth=1,
+                    font=dict(color="red")
+                )
+            else:  # Threshold-based parameter (only maximum limit matters)
+                fig.add_trace(go.Scatter(
+                    x=threshold_x,
+                    y=[max_val, max_val],
+                    mode='lines',
+                    line=dict(color='red', width=2, dash='dash'),
+                    name=f'Límit màxim ({max_val} {threshold["unit"]})',
+                    showlegend=False,
+                    hovertemplate=f'Límit màxim: {max_val} {threshold["unit"]}<extra></extra>'
+                ))
+                
+                # Add text annotation for threshold line
+                fig.add_annotation(
+                    x=x_max,
+                    y=max_val,
+                    text=f"Límit màxim: {max_val} {threshold['unit']}",
+                    showarrow=False,
+                    xanchor="right",
+                    yanchor="bottom",
+                    bgcolor="rgba(255,255,255,0.8)",
+                    bordercolor="red",
+                    borderwidth=1,
+                    font=dict(color="red")
+                )
+        
+        # Calculate y-axis range to ensure threshold lines are visible
+        y_min = min(values) if values else 0
+        y_max = max(values) if values else 1
+        
+        # Extend range to include threshold lines
+        if threshold:
+            min_val = float(threshold['min'])
+            max_val = float(threshold['max'])
+            y_min = min(y_min, min_val - abs(min_val) * 0.1)
+            y_max = max(y_max, max_val + abs(max_val) * 0.1)
+        
+        # Add some padding to the range
+        y_range = y_max - y_min
+        y_padding = y_range * 0.1 if y_range > 0 else 1
+        
+        # Update layout
+        fig.update_layout(
+            title=dict(
+                text=f'Evolució temporal - {get_parameter_label(selected_parameter)}',
+                x=0.5,
+                font=dict(size=16, color='#2c3e50')
+            ),
+            xaxis=dict(
+                title=dict(text='Data', font=dict(size=12, color='#2c3e50')),
+                tickfont=dict(size=10, color='#2c3e50'),
+                gridcolor='#ecf0f1'
+            ),
+            yaxis=dict(
+                title=dict(text=get_parameter_label(selected_parameter), font=dict(size=12, color='#2c3e50')),
+                tickfont=dict(size=10, color='#2c3e50'),
+                gridcolor='#ecf0f1',
+                range=[y_min - y_padding, y_max + y_padding]
+            ),
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            ),
+            margin=dict(l=60, r=60, t=80, b=60),
+            hovermode='x unified'
+        )
+        
+        # Chart info
+        total_points = len(values)
+        date_range = f"des de {min(dates).strftime('%d/%m/%Y')} fins a {max(dates).strftime('%d/%m/%Y')}" if dates else "No disponible"
+        
+        info_text = html.Div([
+            html.P([
+                html.Strong("Punts de dades: "), f"{total_points}",
+                html.Br(),
+                html.Strong("Període: "), date_range,
+                html.Br(),
+                html.Strong("Ubicacions: "), f"{len(set(locations))}" if selected_location == 'all' else selected_location
+            ], style={'fontSize': '0.9rem', 'color': '#6c757d', 'textAlign': 'center'})
+        ])
+        
+        return fig, get_parameter_label(selected_parameter), info_text
+        
+    except Exception as e:
+        # Error handling
+        import traceback
+        print(f"Error updating chart: {e}")
+        traceback.print_exc()
+        
+        empty_fig = go.Figure()
+        empty_fig.add_annotation(
+            text=f"Error carregant les dades: {str(e)}",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            showarrow=False, font=dict(size=16, color="red")
+        )
+        empty_fig.update_layout(
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            plot_bgcolor='white'
+        )
+        return empty_fig, "Error", "S'ha produït un error carregant les dades"
 
 if __name__ == "__main__":
     debug_flag = os.getenv("DASH_DEBUG", "")
