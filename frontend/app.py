@@ -515,6 +515,17 @@ def filter_samples(n, date_from, date_to, location, clear_clicks):
 )
 def update_samples_table(filtered_data, current_page, page_size, sort_column, sort_order):
     data = filtered_data if filtered_data else []
+    
+    # Ensure default values are set properly
+    if current_page is None:
+        current_page = 1
+    if page_size is None:
+        page_size = 10
+    if sort_column is None or sort_column == '':
+        sort_column = 'data'
+    if sort_order is None or sort_order == '':
+        sort_order = 'desc'
+        
     print(f"Table update - Page: {current_page}, Size: {page_size}, Sort: {sort_column}, Order: {sort_order}")
     print(f"Filtered data count: {len(data)}")
     return create_samples_table(data, current_page, page_size, sort_column, sort_order)
@@ -541,76 +552,101 @@ def clear_filters(clear_clicks):
         return None, None, 'all'
     return dash.no_update, dash.no_update, dash.no_update
 
-# Callback for table sorting
+# Unified callback for all table state management
 @app.callback(
-    [Output('table-current-page', 'data', allow_duplicate=True),
+    [Output('table-current-page', 'data'),
+     Output('table-page-size', 'data'),
      Output('table-sort-column', 'data'),
      Output('table-sort-order', 'data')],
     [Input('sort-id', 'n_clicks'),
      Input('sort-data', 'n_clicks'),
-     Input('sort-punt_mostreig', 'n_clicks')],
-    [State('table-sort-column', 'data'),
+     Input('sort-punt_mostreig', 'n_clicks'),
+     Input('pagination-prev', 'n_clicks'),
+     Input('pagination-next', 'n_clicks'),
+     Input('page-input', 'value'),
+     Input('page-size-dropdown', 'value')],
+    [State('table-current-page', 'data'),
+     State('table-page-size', 'data'),
+     State('table-sort-column', 'data'),
      State('table-sort-order', 'data')],
     prevent_initial_call=True
 )
-def handle_sorting(sort_id_clicks, sort_data_clicks, sort_punt_clicks, current_sort_column, current_sort_order):
+def handle_table_state(sort_id_clicks, sort_data_clicks, sort_punt_clicks,
+                      prev_clicks, next_clicks, page_input, page_size_input,
+                      current_page, current_page_size, current_sort_column, current_sort_order):
     ctx = dash.callback_context
     if not ctx.triggered:
-        return dash.no_update, dash.no_update, dash.no_update
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    
+    # Set defaults to prevent None values - preserve 'data' as default sort column
+    if current_page is None:
+        current_page = 1
+    if current_page_size is None:
+        current_page_size = 10
+    if current_sort_column is None or current_sort_column == '':
+        current_sort_column = 'data'
+    if current_sort_order is None or current_sort_order == '':
+        current_sort_order = 'desc'
     
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    triggered_value = ctx.triggered[0]['value']
     
-    if button_id.startswith('sort-'):
+    print(f"Table state update triggered by: {button_id} with value: {triggered_value}")
+    print(f"Current state - Page: {current_page}, Size: {current_page_size}, Sort: {current_sort_column} {current_sort_order}")
+    
+    # Only proceed if this is a real user interaction, not an initial load
+    # Check if the triggered value is meaningful (not None and not initial state)
+    if triggered_value is None:
+        print("Triggered value is None - ignoring to prevent initial state reset")
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    
+    new_page = current_page
+    new_page_size = current_page_size
+    new_sort_column = current_sort_column
+    new_sort_order = current_sort_order
+    
+    # Handle sorting - only if actual clicks occurred
+    if button_id.startswith('sort-') and triggered_value > 0:
         new_column = button_id.replace('sort-', '')
         if new_column == current_sort_column:
             # Toggle sort order
-            new_order = 'asc' if current_sort_order == 'desc' else 'desc'
+            new_sort_order = 'asc' if current_sort_order == 'desc' else 'desc'
         else:
             # New column, default to desc
-            new_order = 'desc'
-        return 1, new_column, new_order  # Reset to page 1 when sorting
+            new_sort_column = new_column
+            new_sort_order = 'desc'
+        new_page = 1  # Reset to page 1 when sorting
+        print(f"Sorting changed to: {new_sort_column} {new_sort_order}")
     
-    return dash.no_update, dash.no_update, dash.no_update
-
-# Callback for pagination navigation
-@app.callback(
-    Output('table-current-page', 'data', allow_duplicate=True),
-    [Input('pagination-prev', 'n_clicks'),
-     Input('pagination-next', 'n_clicks'),
-     Input('page-input', 'value')],
-    [State('table-current-page', 'data')],
-    prevent_initial_call=True
-)
-def handle_pagination(prev_clicks, next_clicks, page_input, current_page):
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        return dash.no_update
-    
-    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    
-    if button_id == 'pagination-prev' and prev_clicks:
-        return max(1, current_page - 1)
-    elif button_id == 'pagination-next' and next_clicks:
-        return current_page + 1  # Table will handle max bounds
+    # Handle pagination - only if actual clicks occurred
+    elif button_id == 'pagination-prev' and prev_clicks and prev_clicks > 0:
+        new_page = max(1, current_page - 1)
+        print(f"Moving to previous page: {new_page}")
+    elif button_id == 'pagination-next' and next_clicks and next_clicks > 0:
+        new_page = current_page + 1  # Table will handle max bounds
+        print(f"Moving to next page: {new_page}")
     elif button_id == 'page-input' and page_input:
         try:
             page_num = int(page_input)
-            return max(1, page_num)  # Ensure at least page 1
+            new_page = max(1, page_num)
+            print(f"Moving to input page: {new_page}")
         except (ValueError, TypeError):
-            return current_page
+            pass
     
-    return dash.no_update
-
-@app.callback(
-    [Output('table-page-size', 'data'),
-     Output('table-current-page', 'data', allow_duplicate=True)],
-    [Input('page-size-dropdown', 'value')],
-    [State('table-sort-column', 'data'),
-     State('table-sort-order', 'data')],
-    prevent_initial_call=True
-)
-def update_page_size(page_size, sort_column, sort_order):
-    return page_size, 1  # Reset to page 1 when changing page size
+    # Handle page size change - only if actual selection occurred
+    elif button_id == 'page-size-dropdown' and page_size_input and page_size_input != current_page_size:
+        new_page_size = page_size_input
+        new_page = 1  # Reset to page 1 when changing page size
+        print(f"Page size changed to: {new_page_size}")
+    
+    # If no actual changes were made, don't update anything
+    if (new_page == current_page and new_page_size == current_page_size and 
+        new_sort_column == current_sort_column and new_sort_order == current_sort_order):
+        print("No actual state changes - returning no_update")
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    
+    print(f"New state - Page: {new_page}, Size: {new_page_size}, Sort: {new_sort_column} {new_sort_order}")
+    return new_page, new_page_size, new_sort_column, new_sort_order
 
 # Callback for CSV export
 @app.callback(

@@ -49,7 +49,7 @@ def create_browse_page():
                             html.Label("Des de:", style={'fontSize': '0.9rem', 'color': '#6c757d', 'marginRight': '0.5rem'}),
                             dcc.DatePickerSingle(
                                 id='date-filter-from',
-                                placeholder='Selecciona data inicial',
+                                placeholder='Data inicial',
                                 display_format='DD/MM/YYYY',
                                 style={'marginRight': '1rem'}
                             ),
@@ -59,7 +59,7 @@ def create_browse_page():
                             html.Label("Fins a:", style={'fontSize': '0.9rem', 'color': '#6c757d', 'marginRight': '0.5rem'}),
                             dcc.DatePickerSingle(
                                 id='date-filter-to',
-                                placeholder='Selecciona data final',
+                                placeholder='Data final',
                                 display_format='DD/MM/YYYY'
                             ),
                         ], style={'display': 'inline-block'}),
@@ -129,11 +129,11 @@ def create_browse_page():
                     html.H3("Llista de mostres", 
                            style={'color': '#2c3e50', 'marginBottom': '1.5rem', 'textAlign': 'center'}),
                     dcc.Interval(id='interval-browse', interval=30*1000, n_intervals=0),
-                    # Hidden stores for table state
-                    dcc.Store(id='table-current-page', data=1),
-                    dcc.Store(id='table-page-size', data=10),
-                    dcc.Store(id='table-sort-column', data='data'),
-                    dcc.Store(id='table-sort-order', data='desc'),
+                    # Hidden stores for table state - using explicit memory storage
+                    dcc.Store(id='table-current-page', data=1, storage_type='memory'),
+                    dcc.Store(id='table-page-size', data=10, storage_type='memory'),
+                    dcc.Store(id='table-sort-column', data='data', storage_type='memory'),
+                    dcc.Store(id='table-sort-order', data='desc', storage_type='memory'),
                     # Hidden stores for filter state
                     dcc.Store(id='filtered-samples', data=[]),
                     # Download component for CSV export
