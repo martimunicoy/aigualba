@@ -745,13 +745,17 @@ def create_samples_table(samples, current_page=1, page_size=10, sort_column='dat
     pagination_controls.append(
         html.Button("← Anterior", id='pagination-prev', 
                    disabled=current_page <= 1,
+                   className='btn-standard',
                    style={
                        'margin': '0 0.5rem', 
-                       'padding': '0.5rem 1rem', 
-                       'backgroundColor': '#6c757d' if current_page <= 1 else '#007bff', 
+                       'padding': '8px 16px', 
+                       'backgroundColor': '#6c757d' if current_page <= 1 else '#3498db', 
                        'color': 'white', 
                        'border': 'none', 
                        'borderRadius': '4px',
+                       'fontSize': '0.9rem',
+                       'boxShadow': '0 2px 4px rgba(0,0,0,0.2)',
+                       'transition': 'all 0.2s ease',
                        'cursor': 'not-allowed' if current_page <= 1 else 'pointer'
                    })
     )
@@ -787,13 +791,17 @@ def create_samples_table(samples, current_page=1, page_size=10, sort_column='dat
     pagination_controls.append(
         html.Button("Següent →", id='pagination-next',
                    disabled=current_page >= total_pages,
+                   className='btn-standard',
                    style={
                        'margin': '0 0.5rem', 
-                       'padding': '0.5rem 1rem',
-                       'backgroundColor': '#6c757d' if current_page >= total_pages else '#007bff', 
+                       'padding': '8px 16px',
+                       'backgroundColor': '#6c757d' if current_page >= total_pages else '#3498db', 
                        'color': 'white', 
                        'border': 'none', 
                        'borderRadius': '4px',
+                       'fontSize': '0.9rem',
+                       'boxShadow': '0 2px 4px rgba(0,0,0,0.2)',
+                       'transition': 'all 0.2s ease',
                        'cursor': 'not-allowed' if current_page >= total_pages else 'pointer'
                    })
     )
