@@ -35,16 +35,24 @@ Use this checklist to ensure a successful production deployment.
 
 ## Deployment Process
 
-### ✅ Automated Deployment (Recommended)
-- [ ] Run `./deploy.sh` script
-- [ ] Follow prompts and verify configuration
+### ✅ Automated Production Deployment (Recommended)
+- [ ] Run `./init-env.sh` to create secure environment
+- [ ] Review and customize `.env` file as needed
+- [ ] Run `./deploy.sh` script (uses production docker-compose.yml)
 - [ ] Wait for all services to start
-- [ ] Run health checks
+- [ ] Run `./health-check.sh` to verify status
 
-### ✅ Manual Deployment (Alternative)
-- [ ] `docker-compose up -d` to start services
-- [ ] `./setup-keycloak.sh` for authentication setup
-- [ ] `./health-check.sh` to verify status
+### ✅ Manual Production Deployment (Alternative)
+- [ ] Copy `.env.example` to `.env` and configure
+- [ ] Ensure `DASH_DEBUG=0` for production
+- [ ] Run `docker-compose up -d` to start services
+- [ ] Run `./setup-keycloak.sh` for authentication setup
+- [ ] Run `./health-check.sh` to verify status
+
+### ✅ Development Deployment
+- [ ] Run `./init-env.sh` and select development mode
+- [ ] Run `docker-compose -f docker-compose.dev.yml up --build`
+- [ ] OR run `./setup-keycloak.sh --dev` for Keycloak only
 
 ## Post-Deployment Checklist
 
@@ -82,28 +90,47 @@ Use this checklist to ensure a successful production deployment.
 - [ ] Update procedures documented
 - [ ] Support contacts configured
 
+## Environment Management
+
+### ✅ Environment Detection
+- [ ] Scripts automatically detect production vs development
+- [ ] Production: `DASH_DEBUG=0` or unset in `.env`
+- [ ] Development: `DASH_DEBUG=1` in `.env` or `--dev` flag
+- [ ] Verify correct compose file is being used
+
+### ✅ Environment-Specific Commands
+
+**Production:**
+```bash
+./init-env.sh                 # Initialize environment
+./deploy.sh                   # Deploy production
+./setup-keycloak.sh          # Setup Keycloak (auto-detects)
+docker-compose logs -f        # View logs
+```
+
+**Development:**
+```bash
+./setup-keycloak.sh --dev                        # Force dev mode
+docker-compose -f docker-compose.dev.yml up      # Start dev environment
+docker-compose -f docker-compose.dev.yml logs    # View dev logs
+```
+
 ## Quick Commands Reference
 
 ```bash
-# Deploy application
-./deploy.sh
+# Environment-aware commands
+./deploy.sh                   # Production deployment
+./health-check.sh            # Health monitoring  
+./backup.sh                  # Create backup
+./setup-keycloak.sh          # Setup authentication
 
-# Check health
-./health-check.sh
-
-# Create backup
-./backup.sh
-
-# View logs
+# Manual Docker commands
+docker-compose up -d         # Start production
 docker-compose logs -f [service]
-
-# Restart services
-docker-compose restart
-
-# Stop services
+docker-compose restart [service]
 docker-compose down
 
-# Update application
+# Updates
 git pull && docker-compose up --build -d
 ```
 

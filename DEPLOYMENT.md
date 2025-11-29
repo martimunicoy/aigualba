@@ -16,11 +16,12 @@ This guide covers deploying Aigualba in production environments.
 git clone https://github.com/martimunicoy/aigualba.git
 cd aigualba
 
-# Copy environment template
-cp .env.example .env
+# Initialize secure environment
+./init-env.sh
 
-# Edit environment variables
-nano .env
+# OR manually copy and edit
+# cp .env.example .env
+# nano .env
 ```
 
 ### 2. Configure Environment Variables
@@ -50,7 +51,10 @@ DASH_DEBUG=0
 ### 3. Deploy the Application
 
 ```bash
-# Start all services
+# Automated deployment (recommended)
+./deploy.sh
+
+# OR Manual deployment
 docker-compose up -d
 
 # Check service status
@@ -63,11 +67,11 @@ docker-compose logs -f
 ### 4. Initialize Keycloak (First Time Only)
 
 ```bash
-# Run the setup script
+# Setup script (auto-detects production environment)
 ./setup-keycloak.sh
 
-# Or manually import realm
-docker-compose exec keycloak /opt/keycloak/bin/kc.sh import --file /opt/keycloak/data/import/realm-import.json
+# Verify Keycloak is working
+curl http://localhost:8080/health/ready
 ```
 
 ### 5. Access the Application
@@ -75,6 +79,35 @@ docker-compose exec keycloak /opt/keycloak/bin/kc.sh import --file /opt/keycloak
 - **Public Dashboard**: http://your-server-ip (or http://localhost if local)
 - **Admin Panel**: http://your-server-ip/admin
 - **Keycloak Admin Console**: http://your-server-ip:8080
+
+## 🔄 Environment Management
+
+### Automatic Environment Detection
+
+The deployment scripts automatically detect the environment:
+
+**Production Environment** (uses `docker-compose.yml`):
+- `.env` file with `DASH_DEBUG=0` or missing
+- Optimized containers with security hardening
+- No development sample data
+
+**Development Environment** (uses `docker-compose.dev.yml`):
+- `.env` file with `DASH_DEBUG=1`
+- Development tools and hot reload
+- Sample data for testing
+
+### Manual Environment Selection
+
+```bash
+# Force development mode
+./setup-keycloak.sh --dev
+
+# Production deployment
+./deploy.sh
+
+# Development setup
+docker-compose -f docker-compose.dev.yml up --build
+```
 
 ## 🔐 Production Security Checklist
 

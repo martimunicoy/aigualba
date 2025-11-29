@@ -125,26 +125,32 @@ docker-compose -f docker-compose.dev.yml up --build
 
 ### Production Deployment
 
-#### 1. Production Setup
+#### 1. Automated Production Setup (Recommended)
 ```bash
 # Clone the repository
 git clone https://github.com/martimunicoy/aigualba.git
 cd aigualba
 
-# Configure environment variables
-cp .env.example .env
-# Edit .env with your production values
+# Initialize secure environment
+./init-env.sh
 
-# Deploy with the automated script
+# Deploy with automated script
 ./deploy.sh
+
+# Verify deployment
+./health-check.sh
 ```
 
 #### 2. Manual Production Deployment
 ```bash
+# Configure environment
+cp .env.example .env
+# Edit .env with production values (set DASH_DEBUG=0)
+
 # Start production services
 docker-compose up -d
 
-# Setup Keycloak (first time only)  
+# Setup Keycloak authentication
 ./setup-keycloak.sh
 
 # Check service health
@@ -300,9 +306,15 @@ DASH_DEBUG=1
 
 ## 🛠️ Production Management
 
+### Environment-Aware Scripts
+
+All management scripts automatically detect your environment:
+- **Production**: Uses `docker-compose.yml`
+- **Development**: Uses `docker-compose.dev.yml`
+
 ### Backup and Recovery
 ```bash
-# Create backup
+# Create backup (environment-aware)
 ./backup.sh
 
 # Restore database from backup  
@@ -311,7 +323,7 @@ docker-compose exec -T db psql -U aigualba_user aigualba < backup-20241129.sql
 
 ### Monitoring
 ```bash
-# Check system health
+# Check system health (environment-aware)
 ./health-check.sh
 
 # View service logs
@@ -323,17 +335,29 @@ docker stats
 
 ### Updates
 ```bash
-# Update to latest version
+# Update to latest version (production)
 git pull origin main
 docker-compose down
 docker-compose up --build -d
+
+# Update development environment
+git pull origin main
+docker-compose -f docker-compose.dev.yml down
+docker-compose -f docker-compose.dev.yml up --build -d
 ```
 
 ### Maintenance Scripts
+- **`init-env.sh`**: Initialize secure environment variables
 - **`deploy.sh`**: Automated production deployment
+- **`setup-keycloak.sh`**: Environment-aware Keycloak setup
 - **`health-check.sh`**: System health monitoring
 - **`backup.sh`**: Database and application backup
-- **`setup-keycloak.sh`**: Keycloak authentication setup
+
+### Script Environment Detection
+
+All scripts automatically detect whether you're running in:
+- **Production**: Based on `.env` settings and available compose files
+- **Development**: Based on `DASH_DEBUG=1` or `--dev` flags
 
 ## 📋 Troubleshooting
 
