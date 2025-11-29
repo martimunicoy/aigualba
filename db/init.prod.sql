@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS mostres (
     acid_tricloroacetic DECIMAL(10,2), -- ug/l
     acid_monobromoacetic DECIMAL(10,2), -- ug/l
     acid_dibromoacetic DECIMAL(10,2), -- ug/l
+    validated BOOLEAN DEFAULT FALSE, -- Whether the sample has been admin-validated
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -62,3 +63,4 @@ COMMENT ON COLUMN mostres.recompte_escherichia_coli IS 'E.coli count in NPM/100m
 COMMENT ON COLUMN mostres.recompte_enterococ IS 'Enterococci count in NPM/100ml';
 COMMENT ON COLUMN mostres.recompte_microorganismes_aerobis_22c IS 'Aerobic microorganisms count at 22°C in UFC/ml';
 COMMENT ON COLUMN mostres.recompte_coliformes_totals IS 'Total coliforms count in NMP/100ml';
+COMMENT ON COLUMN mostres.validated IS 'Whether the sample has been admin-validated for public display';

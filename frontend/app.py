@@ -543,14 +543,17 @@ def handle_sample_submission(n_clicks, sample_date, punt_mostreig, temperatura, 
     result = submit_sample_data(BACKEND_URL, sample_data)
     
     if result['success']:
-        # Safely get ID from result data
+        # Safely get information from result data
         sample_id = "N/A"
+        api_message = "Mostra enviada correctament!"
         if result.get('data') and isinstance(result['data'], dict):
             sample_id = str(result['data'].get('id', 'N/A'))
+            api_message = result['data'].get('message', 'Mostra enviada correctament!')
         
         success_message = html.Div([
             html.H3("✓ Mostra enviada correctament!", style={'color': '#2e7d32', 'marginBottom': '0.5rem', 'marginTop': '0'}),
-            html.P(f"ID de la mostra: {sample_id}", style={'margin': '0'})
+            html.P(f"ID de la mostra: {sample_id}", style={'margin': '0 0 0.5rem 0'}),
+            html.P(api_message, style={'margin': '0', 'fontStyle': 'italic'})
         ], style={
             'backgroundColor': '#e8f5e8',
             'border': '1px solid #4caf50',

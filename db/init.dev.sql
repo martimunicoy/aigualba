@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS mostres (
     acid_tricloroacetic DECIMAL(10,2), -- ug/l
     acid_monobromoacetic DECIMAL(10,2), -- ug/l
     acid_dibromoacetic DECIMAL(10,2), -- ug/l
+    validated BOOLEAN DEFAULT FALSE, -- Whether the sample has been admin-validated
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -43,12 +44,12 @@ INSERT INTO parameters (name, value) VALUES
 ('test_mode', 'true');
 
 -- DUMMY SAMPLE DATA FOR TESTING - DO NOT USE IN PRODUCTION
-INSERT INTO mostres (data, punt_mostreig, temperatura, ph, conductivitat_20c, terbolesa, color, olor, sabor, clor_lliure, clor_total, recompte_escherichia_coli, recompte_enterococ, recompte_microorganismes_aerobis_22c, recompte_coliformes_totals, acid_monocloroacetic, acid_dicloroacetic, acid_tricloroacetic, acid_monobromoacetic, acid_dibromoacetic) VALUES
-('2024-11-25', 'Dipòsit Vell Can Figueres', 20.5, 7.2, 250.0, 0.5, 5.0, 2.0, 2.0, 0.5, 0.8, 0.0, 0.0, 100.0, 0.0, 1.0, 2.0, 1.5, 0.5, 0.3),
-('2024-11-24', 'Font de la Plaça', 21.0, 7.1, 280.0, 0.3, 4.5, 1.5, 1.8, 0.6, 0.9, 0.0, 0.0, 95.0, 0.0, 0.8, 1.8, 1.2, 0.4, 0.2),
-('2024-11-23', 'Dipòsit Nou Can Figueres', 19.8, 7.3, 245.0, 0.4, 5.2, 2.1, 2.2, 0.4, 0.7, 0.0, 0.0, 110.0, 0.0, 1.1, 2.1, 1.4, 0.6, 0.4),
-('2024-11-22', 'Font Masia Can Figueres', 20.2, 7.0, 260.0, 0.6, 4.8, 1.9, 2.0, 0.5, 0.8, 0.0, 0.0, 105.0, 0.0, 0.9, 1.9, 1.3, 0.5, 0.3),
-('2024-11-21', 'Dipòsit Royal Park 1', 21.5, 7.2, 275.0, 0.2, 4.2, 1.6, 1.7, 0.7, 1.0, 0.0, 0.0, 90.0, 0.0, 1.2, 2.2, 1.6, 0.7, 0.5);
+INSERT INTO mostres (data, punt_mostreig, temperatura, ph, conductivitat_20c, terbolesa, color, olor, sabor, clor_lliure, clor_total, recompte_escherichia_coli, recompte_enterococ, recompte_microorganismes_aerobis_22c, recompte_coliformes_totals, acid_monocloroacetic, acid_dicloroacetic, acid_tricloroacetic, acid_monobromoacetic, acid_dibromoacetic, validated) VALUES
+('2024-11-25', 'Dipòsit Vell Can Figueres', 20.5, 7.2, 250.0, 0.5, 5.0, 2.0, 2.0, 0.5, 0.8, 0.0, 0.0, 100.0, 0.0, 1.0, 2.0, 1.5, 0.5, 0.3, TRUE),
+('2024-11-24', 'Font de la Plaça', 21.0, 7.1, 280.0, 0.3, 4.5, 1.5, 1.8, 0.6, 0.9, 0.0, 0.0, 95.0, 0.0, 0.8, 1.8, 1.2, 0.4, 0.2, TRUE),
+('2024-11-23', 'Dipòsit Nou Can Figueres', 19.8, 7.3, 245.0, 0.4, 5.2, 2.1, 2.2, 0.4, 0.7, 0.0, 0.0, 110.0, 0.0, 1.1, 2.1, 1.4, 0.6, 0.4, TRUE),
+('2024-11-22', 'Font Masia Can Figueres', 20.2, 7.0, 260.0, 0.6, 4.8, 1.9, 2.0, 0.5, 0.8, 0.0, 0.0, 105.0, 0.0, 0.9, 1.9, 1.3, 0.5, 0.3, TRUE),
+('2024-11-21', 'Dipòsit Royal Park 1', 21.5, 7.2, 275.0, 0.2, 4.2, 1.6, 1.7, 0.7, 1.0, 0.0, 0.0, 90.0, 0.0, 1.2, 2.2, 1.6, 0.7, 0.5, TRUE);
 
 -- Create indexes for better performance (same as production)
 CREATE INDEX IF NOT EXISTS idx_mostres_data ON mostres(data DESC);
