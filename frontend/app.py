@@ -610,6 +610,9 @@ def update_location_options(selected_parameter):
             if selected_parameter == 'suma_haloacetics':
                 from utils.helpers import calculate_suma_haloacetics
                 param_value = calculate_suma_haloacetics(sample)
+            elif selected_parameter == 'clor_combinat_residual':
+                from utils.helpers import calculate_clor_combinat_residual
+                param_value = calculate_clor_combinat_residual(sample)
             else:
                 param_value = sample.get(selected_parameter)
                 
@@ -642,7 +645,7 @@ def update_chart(selected_parameter, selected_location):
         from utils.thresholds import get_threshold
         
         # Check if parameter is selected
-        if not selected_parameter:
+        if not selected_parameter or not selected_location:
             empty_fig = go.Figure()
             empty_fig.add_annotation(
                 text="Selecciona un paràmetre i punt de mostreig de la llista per generar el gràfic",
@@ -655,7 +658,7 @@ def update_chart(selected_parameter, selected_location):
                 yaxis=dict(visible=False),
                 plot_bgcolor='white'
             )
-            return empty_fig, "Selecciona un paràmetre", "Selecciona un paràmetre per visualitzar les dades"
+            return empty_fig, "Selecciona un paràmetre i punt de mostreig", None
         
         # Fetch samples
         samples = fetch_samples(BACKEND_URL)
@@ -672,7 +675,7 @@ def update_chart(selected_parameter, selected_location):
                 yaxis=dict(visible=False),
                 plot_bgcolor='white'
             )
-            return empty_fig, "Gràfic de dades", ""
+            return empty_fig, "Gràfic de dades", None
         
         # Filter samples based on parameter availability and location
         filtered_samples = []
@@ -681,6 +684,9 @@ def update_chart(selected_parameter, selected_location):
             if selected_parameter == 'suma_haloacetics':
                 from utils.helpers import calculate_suma_haloacetics
                 param_value = calculate_suma_haloacetics(sample)
+            elif selected_parameter == 'clor_combinat_residual':
+                from utils.helpers import calculate_clor_combinat_residual
+                param_value = calculate_clor_combinat_residual(sample)
             else:
                 param_value = sample.get(selected_parameter)
             
@@ -691,7 +697,7 @@ def update_chart(selected_parameter, selected_location):
                     # Check if sample has a valid date
                     if sample.get('data'):
                         # Add the calculated value to the sample for later use
-                        if selected_parameter == 'suma_haloacetics':
+                        if selected_parameter in ['suma_haloacetics', 'clor_combinat_residual']:
                             sample_copy = sample.copy()
                             sample_copy[selected_parameter] = param_value
                             filtered_samples.append(sample_copy)
@@ -711,7 +717,7 @@ def update_chart(selected_parameter, selected_location):
                 yaxis=dict(visible=False),
                 plot_bgcolor='white'
             )
-            return empty_fig, get_parameter_label(selected_parameter), "No hi ha dades disponibles"
+            return empty_fig, get_parameter_label(selected_parameter), None
         
         # Prepare data for plotting
         dates = []
@@ -797,6 +803,13 @@ def update_chart(selected_parameter, selected_location):
             # Create x-axis range for threshold lines
             x_min = min(dates)
             x_max = max(dates)
+            
+            # If only one data point, extend the line to make it visible
+            if x_min == x_max:
+                from datetime import timedelta
+                x_min = x_min - timedelta(days=1)
+                x_max = x_max + timedelta(days=1)
+            
             threshold_x = [x_min, x_max]
             
             # Add horizontal lines for thresholds as scatter traces

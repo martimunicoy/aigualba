@@ -55,15 +55,16 @@ def create_visualize_page():
                                 {'label': 'Sabor (índex dilució 25°C)', 'value': 'sabor'},
                                 {'label': 'Clor lliure (mg/L)', 'value': 'clor_lliure'},
                                 {'label': 'Clor total (mg/L)', 'value': 'clor_total'},
+                                {'label': 'Clor combinat residual (mg/L)', 'value': 'clor_combinat_residual'},
                                 {'label': 'E. coli (NPM/100mL)', 'value': 'recompte_escherichia_coli'},
                                 {'label': 'Enterococs (NPM/100mL)', 'value': 'recompte_enterococ'},
                                 {'label': 'Microorganismes aerobis 22°C (UFC/1mL)', 'value': 'recompte_microorganismes_aerobis_22c'},
                                 {'label': 'Coliformes totals (NMP/100mL)', 'value': 'recompte_coliformes_totals'},
-                                #{'label': 'Àcid monocloroacètic (μg/L)', 'value': 'acid_monocloroacetic'},
-                                #{'label': 'Àcid dicloroacètic (μg/L)', 'value': 'acid_dicloroacetic'},
-                                #{'label': 'Àcid tricloroacètic (μg/L)', 'value': 'acid_tricloroacetic'},
-                                #{'label': 'Àcid monobromoacètic (μg/L)', 'value': 'acid_monobromoacetic'},
-                                #{'label': 'Àcid dibromoacètic (μg/L)', 'value': 'acid_dibromoacetic'},
+                                {'label': 'Àcid monocloroacètic (μg/L)', 'value': 'acid_monocloroacetic'},
+                                {'label': 'Àcid dicloroacètic (μg/L)', 'value': 'acid_dicloroacetic'},
+                                {'label': 'Àcid tricloroacètic (μg/L)', 'value': 'acid_tricloroacetic'},
+                                {'label': 'Àcid monobromoacètic (μg/L)', 'value': 'acid_monobromoacetic'},
+                                {'label': 'Àcid dibromoacètic (μg/L)', 'value': 'acid_dibromoacetic'},
                                 {'label': 'Suma 5 haloacètics (μg/L)', 'value': 'suma_haloacetics'}
                             ],
                             value=None,
@@ -153,6 +154,7 @@ def get_parameter_label(parameter_key):
         'acid_tricloroacetic': 'Àcid tricloroacètic (μg/L)',
         'acid_monobromoacetic': 'Àcid monobromoacètic (μg/L)',
         'acid_dibromoacetic': 'Àcid dibromoacètic (μg/L)',
-        'suma_haloacetics': 'Suma 5 haloacètics (μg/L)'
+        'suma_haloacetics': 'Suma 5 haloacètics (μg/L)',
+        'clor_combinat_residual': 'Clor combinat residual (mg/L)'
     }
     return parameter_labels.get(parameter_key, parameter_key)
