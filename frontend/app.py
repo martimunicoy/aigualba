@@ -29,6 +29,23 @@ from utils.helpers import (get_backend_url, fetch_parameters, create_parameter_c
 # Get backend URL
 BACKEND_URL = get_backend_url()
 
+def track_visit(page_name, request=None):
+    """Track a visit to a page"""
+    try:
+        visit_data = {
+            'page': page_name,
+            'user_agent': request.headers.get('User-Agent', '') if request else '',
+            'ip_address': request.environ.get('REMOTE_ADDR', '') if request else ''
+        }
+        
+        response = requests.post(f"{BACKEND_URL}/api/admin/visits", json=visit_data, timeout=5)
+        if response.status_code == 200:
+            print(f"Visit tracked: {page_name}")
+        else:
+            print(f"Failed to track visit: {response.status_code}")
+    except Exception as e:
+        print(f"Error tracking visit: {e}")
+
 def create_sample_detail_page(sample_id, referrer="/browse"):
     """Create a sample detail page for a specific sample ID"""
     sample_data = None
@@ -144,15 +161,21 @@ app.config.suppress_callback_exceptions = True
 @app.callback(Output('page-content', 'children'),
               [Input('url', 'pathname'), Input('url', 'search')])
 def display_page(pathname, search):
+    # Track page visits
     if pathname == '/about':
+        track_visit('about')
         return create_about_page()
     elif pathname == '/browse':
+        track_visit('browse')
         return create_browse_page()
     elif pathname == '/visualize':
+        track_visit('visualize')
         return create_visualize_page()
     elif pathname == '/submit':
+        track_visit('submit')
         return create_submit_page()
     elif pathname == '/admin':
+        track_visit('admin')
         return admin_layout
     elif pathname and pathname.startswith('/sample/'):
         # Handle direct sample detail pages like /sample/123
@@ -201,6 +224,7 @@ def display_page(pathname, search):
                 html.A("Return to browse", href="/browse")
             ])
     else:
+        track_visit('home')
         return create_home_page()
 
 # Callback to populate home location selector

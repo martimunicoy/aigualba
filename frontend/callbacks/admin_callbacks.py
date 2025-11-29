@@ -283,15 +283,18 @@ def handle_admin_auth(pathname, search, login_clicks, logout_clicks, username_su
 @callback(
     [Output('tab-samples', 'className'),
      Output('tab-stats', 'className'),
+     Output('tab-logs', 'className'),
      Output('admin-active-tab', 'data'),
      Output('admin-tab-content', 'children')],
     [Input('tab-samples', 'n_clicks'),
-     Input('tab-stats', 'n_clicks')],
+     Input('tab-stats', 'n_clicks'),
+     Input('tab-logs', 'n_clicks')],
     [State('admin-samples-data', 'data'),
      State('admin-stats-data', 'data'),
+     State('admin-logs-data', 'data'),
      State('admin-auth-state', 'data')]
 )
-def switch_admin_tabs(samples_clicks, stats_clicks, samples_data, stats_data, auth_state):
+def switch_admin_tabs(samples_clicks, stats_clicks, logs_clicks, samples_data, stats_data, logs_data, auth_state):
     """Handle admin tab switching - requires authentication"""
     # Check authentication first
     if not auth_state or not auth_state.get('authenticated'):
@@ -305,25 +308,33 @@ def switch_admin_tabs(samples_clicks, stats_clicks, samples_data, stats_data, au
             samples_data = []
         if not stats_data:
             stats_data = {}
+        if not logs_data:
+            logs_data = []
         return (
-            'admin-tab active-tab', 'admin-tab',
+            'admin-tab active-tab', 'admin-tab', 'admin-tab',
             'samples',
-            create_admin_tabs_content('samples', samples_data, stats_data)
+            create_admin_tabs_content('samples', samples_data, stats_data, logs_data)
         )
     
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
     
     if trigger_id == 'tab-samples':
         return (
-            'admin-tab active-tab', 'admin-tab',
+            'admin-tab active-tab', 'admin-tab', 'admin-tab',
             'samples',
-            create_admin_tabs_content('samples', samples_data, stats_data)
+            create_admin_tabs_content('samples', samples_data, stats_data, logs_data)
         )
     elif trigger_id == 'tab-stats':
         return (
-            'admin-tab', 'admin-tab active-tab',
+            'admin-tab', 'admin-tab active-tab', 'admin-tab',
             'stats',
-            create_admin_tabs_content('stats', samples_data, stats_data)
+            create_admin_tabs_content('stats', samples_data, stats_data, logs_data)
+        )
+    elif trigger_id == 'tab-logs':
+        return (
+            'admin-tab', 'admin-tab', 'admin-tab active-tab',
+            'logs',
+            create_admin_tabs_content('logs', samples_data, stats_data, logs_data)
         )
     
     raise PreventUpdate
@@ -331,7 +342,8 @@ def switch_admin_tabs(samples_clicks, stats_clicks, samples_data, stats_data, au
 # Load admin data callback
 @callback(
     [Output('admin-samples-data', 'data'),
-     Output('admin-stats-data', 'data')],
+     Output('admin-stats-data', 'data'),
+     Output('admin-logs-data', 'data')],
     [Input('admin-active-tab', 'data'),
      Input('admin-auth-state', 'data')],
     prevent_initial_call=True
@@ -357,27 +369,38 @@ def load_admin_data(active_tab, auth_state):
         response = requests.get(f"{backend_url}/api/mostres/admin/all")
         if response.status_code == 200:
             samples_data = response.json()
-            
-            # Calculate statistics from the data
-            total_samples = len(samples_data)
-            validated_samples = sum(1 for sample in samples_data if sample.get('validated', False))
-            pending_samples = total_samples - validated_samples
-            
-            # Group by location
-            locations = {}
-            for sample in samples_data:
-                location = sample.get('punt_mostreig', 'Unknown')
-                locations[location] = locations.get(location, 0) + 1
-            
-            stats_data = {
-                'total_samples': total_samples,
-                'validated_samples': validated_samples,
-                'pending_samples': pending_samples,
-                'samples_by_location': locations
-            }
         else:
             print(f"Error fetching admin samples: {response.status_code}")
             
+        # Fetch statistics including visits from admin statistics endpoint
+        token = auth_state.get('token')
+        if token:
+            headers = {'Authorization': f'Bearer admin-{token}'}
+            stats_response = requests.get(f"{backend_url}/api/admin/statistics", headers=headers)
+            if stats_response.status_code == 200:
+                stats_data = stats_response.json()
+                print(f"DEBUG: Got stats data from backend: {stats_data}")
+                print(f"DEBUG: Visits data in stats: {stats_data.get('visits_last_7_days', 'NOT FOUND')}")
+            else:
+                print(f"Error fetching admin statistics: {stats_response.status_code}")
+                # Fallback to calculate basic statistics from samples data
+                total_samples = len(samples_data)
+                validated_samples = sum(1 for sample in samples_data if sample.get('validated', False))
+                pending_samples = total_samples - validated_samples
+                
+                # Group by location
+                locations = {}
+                for sample in samples_data:
+                    location = sample.get('punt_mostreig', 'Unknown')
+                    locations[location] = locations.get(location, 0) + 1
+                
+                stats_data = {
+                    'total_samples': total_samples,
+                    'validated_samples': validated_samples,
+                    'pending_samples': pending_samples,
+                    'samples_by_location': locations
+                }
+        
     except Exception as e:
         print(f"Error loading admin data: {e}")
         # Fallback to empty data
@@ -389,7 +412,44 @@ def load_admin_data(active_tab, auth_state):
             'samples_by_location': {}
         }
     
-    return samples_data, stats_data
+    # Fetch logs data if logs tab is active
+    logs_data = []
+    if active_tab == 'logs':
+        try:
+            # Get logs from backend API
+            token = auth_state.get('token')
+            if token:
+                headers = {'Authorization': f'Bearer admin-{token}'}
+                response = requests.get(f"{backend_url}/api/admin/logs", headers=headers, timeout=10)
+                
+                if response.status_code == 200:
+                    all_logs_data = response.json()
+                    logs_data = []
+                    
+                    # Format logs from all services
+                    for service_name, service_logs in all_logs_data.get('services', {}).items():
+                        logs_data.append(f"=== {service_name.upper()} SERVICE LOGS ===")
+                        
+                        if service_logs.get('error'):
+                            logs_data.extend(service_logs.get('logs', []))
+                        else:
+                            service_log_lines = service_logs.get('logs', [])
+                            # Add only the last 25 lines per service to avoid overwhelming display
+                            recent_logs = service_log_lines[-25:] if len(service_log_lines) > 25 else service_log_lines
+                            logs_data.extend(recent_logs)
+                        
+                        logs_data.append("")  # Empty line separator
+                
+                else:
+                    logs_data = [f"Error fetching logs: HTTP {response.status_code}"]
+            else:
+                logs_data = ["Authentication required to view logs"]
+                
+        except Exception as e:
+            print(f"Error fetching logs: {e}")
+            logs_data = [f'Error fetching logs: {str(e)}']
+    
+    return samples_data, stats_data, logs_data
 
 # Sample management callbacks
 @callback(
@@ -797,3 +857,172 @@ def toggle_select_all(n_clicks, current_selected, table_data, filtered_data):
         ]
     
     return new_selected, button_content
+
+# Logs management callbacks
+@callback(
+    Output('admin-logs-data', 'data', allow_duplicate=True),
+    [Input('refresh-logs-btn', 'n_clicks')],
+    [State('admin-auth-state', 'data')],
+    prevent_initial_call=True
+)
+def refresh_logs(n_clicks, auth_state):
+    """Refresh logs data"""
+    if not n_clicks or not auth_state or not auth_state.get('authenticated'):
+        raise PreventUpdate
+    
+    try:
+        import datetime
+        import requests
+        from utils.helpers import get_backend_url
+        
+        backend_url = get_backend_url()
+        current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Get logs from backend API
+        token = auth_state.get('token')
+        if token:
+            headers = {'Authorization': f'Bearer admin-{token}'}
+            response = requests.get(f"{backend_url}/api/admin/logs", headers=headers, timeout=15)
+            
+            if response.status_code == 200:
+                all_logs_data = response.json()
+                logs_data = [f"[{current_time}] INFO: Logs refreshed successfully"]
+                
+                # Format logs from all services
+                for service_name, service_logs in all_logs_data.get('services', {}).items():
+                    logs_data.append(f"\n=== {service_name.upper()} SERVICE LOGS ===")
+                    
+                    if service_logs.get('error'):
+                        logs_data.extend(service_logs.get('logs', []))
+                    else:
+                        service_log_lines = service_logs.get('logs', [])
+                        # Add only the last 30 lines per service
+                        recent_logs = service_log_lines[-30:] if len(service_log_lines) > 30 else service_log_lines
+                        logs_data.extend(recent_logs)
+                    
+                    logs_data.append("")  # Empty line separator
+                
+            else:
+                logs_data = [
+                    f"[{current_time}] ERROR: Failed to fetch logs from backend",
+                    f"[{current_time}] ERROR: HTTP {response.status_code}: {response.text}"
+                ]
+        else:
+            logs_data = [f"[{current_time}] ERROR: No authentication token available"]
+            
+    except Exception as e:
+        import datetime
+        print(f"Error refreshing logs: {e}")
+        logs_data = [f'[{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}] ERROR: {str(e)}']
+    
+    return logs_data
+
+@callback(
+    Output('logs-content', 'children'),
+    [Input('admin-logs-data', 'data'),
+     Input('log-level-filter', 'value'),
+     Input('service-filter', 'value')],
+    prevent_initial_call=True
+)
+def update_logs_content(logs_data, log_level_filter, service_filter):
+    """Update logs content based on filters"""
+    if not logs_data:
+        return [html.P("No hi ha logs disponibles.", style={
+            'textAlign': 'center',
+            'color': '#6c757d',
+            'padding': '2rem'
+        })]
+    
+    filtered_logs = logs_data
+    
+    # Apply service filter if not 'all'
+    if service_filter and service_filter != 'all':
+        in_service_section = False
+        service_filtered_logs = []
+        
+        for log_line in logs_data:
+            # Check if we're entering the desired service section
+            if f"=== {service_filter} SERVICE LOGS ===" in log_line:
+                in_service_section = True
+                service_filtered_logs.append(log_line)
+                continue
+            
+            # Check if we're entering a different service section
+            if "=== " in log_line and " SERVICE LOGS ===" in log_line and service_filter not in log_line:
+                in_service_section = False
+                continue
+            
+            # Add log lines that belong to the selected service
+            if in_service_section:
+                service_filtered_logs.append(log_line)
+        
+        filtered_logs = service_filtered_logs
+    
+    # Apply log level filter if not 'all'
+    if log_level_filter and log_level_filter != 'all':
+        filtered_logs = [log for log in filtered_logs if log_level_filter in log or "===" in log]
+    
+    # Take only the last 150 lines for performance
+    display_logs = filtered_logs[-150:] if len(filtered_logs) > 150 else filtered_logs
+    
+    if not display_logs:
+        return [html.P(f"No s'han trobat logs amb el nivell '{log_level_filter}'.", style={
+            'textAlign': 'center',
+            'color': '#6c757d',
+            'padding': '2rem'
+        })]
+    
+    # Style different log levels
+    styled_logs = []
+    for log_line in display_logs:
+        style = {
+            'margin': '0',
+            'padding': '2px 0',
+            'fontFamily': 'Monaco, Menlo, "Ubuntu Mono", monospace',
+            'fontSize': '0.85rem',
+            'lineHeight': '1.4'
+        }
+        
+        # Color code different log levels
+        if 'ERROR' in log_line:
+            style['color'] = '#ff6b6b'
+        elif 'WARNING' in log_line:
+            style['color'] = '#ffd93d'
+        elif 'INFO' in log_line:
+            style['color'] = '#74c0fc'
+        else:
+            style['color'] = '#e2e8f0'
+        
+        styled_logs.append(html.Div(log_line, style=style))
+    
+    return [html.Div(styled_logs, style={
+        'backgroundColor': '#2d3748',
+        'padding': '1rem',
+        'borderRadius': '4px',
+        'maxHeight': '600px',
+        'overflowY': 'auto',
+        'whiteSpace': 'pre-wrap',
+        'wordWrap': 'break-word'
+    })]
+
+@callback(
+    [Output('admin-logs-data', 'data', allow_duplicate=True),
+     Output('admin-status-message', 'children', allow_duplicate=True)],
+    [Input('clear-logs-btn', 'n_clicks')],
+    [State('admin-auth-state', 'data')],
+    prevent_initial_call=True
+)
+def clear_logs(n_clicks, auth_state):
+    """Clear logs (this is just a UI clear, actual logs remain in containers)"""
+    if not n_clicks or not auth_state or not auth_state.get('authenticated'):
+        raise PreventUpdate
+    
+    return [], html.Div([
+        html.P("Logs nets de la visualització.", 
+               style={'color': '#28a745', 'margin': '0'})
+    ], style={
+        'backgroundColor': '#d4edda',
+        'padding': '1rem',
+        'borderRadius': '4px',
+        'border': '1px solid #c3e6cb'
+    })

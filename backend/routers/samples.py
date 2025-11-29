@@ -32,7 +32,7 @@ def create_sample(mostre: MostreData):
     try:
         new_id = create_mostre(mostre.dict())
         return {
-            "message": "Sample submitted successfully. It will be visible once validated by an administrator.", 
+            "message": "Mostra pujada amb èxit. Serà visible un cop validada per un administrador.", 
             "id": new_id,
             "validated": False
         }

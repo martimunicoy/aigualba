@@ -273,15 +273,272 @@ def get_admin_statistics(token: str = Depends(verify_admin_token)):
                     sample['created_at'] = sample['created_at'].isoformat()
                 recent_samples.append(sample)
             
+            # Get visits statistics for last 7 days
+            cursor.execute("""
+                SELECT 
+                    DATE(timestamp) as visit_date,
+                    COUNT(*) as visits
+                FROM visits 
+                WHERE timestamp >= NOW() - INTERVAL '7 days'
+                GROUP BY DATE(timestamp)
+                ORDER BY visit_date ASC
+            """)
+            
+            visits_data = []
+            for row in cursor.fetchall():
+                visits_data.append({
+                    "date": row[0].strftime('%Y-%m-%d'),
+                    "visits": row[1]
+                })
+            
+            # Get monthly visits statistics for last year (including months with 0 visits)
+            cursor.execute("""
+                WITH months AS (
+                    SELECT DATE_TRUNC('month', generate_series(
+                        NOW() - INTERVAL '1 year',
+                        NOW(),
+                        INTERVAL '1 month'
+                    )) as month_date
+                )
+                SELECT 
+                    m.month_date,
+                    COALESCE(COUNT(v.timestamp), 0) as visits
+                FROM months m
+                LEFT JOIN visits v ON DATE_TRUNC('month', v.timestamp) = m.month_date
+                GROUP BY m.month_date
+                ORDER BY m.month_date ASC
+            """)
+            
+            visits_monthly_data = []
+            for row in cursor.fetchall():
+                visits_monthly_data.append({
+                    "month": row[0].strftime('%Y-%m'),
+                    "visits": row[1]
+                })
+            
+            # Get total visits for last 30 days
+            cursor.execute("""
+                SELECT COUNT(*) FROM visits 
+                WHERE timestamp >= NOW() - INTERVAL '30 days'
+            """)
+            total_visits = cursor.fetchone()[0]
+            
             return {
                 "total_samples": total_samples,
                 "validated_samples": validated_samples,
                 "pending_samples": pending_samples,
                 "samples_by_location": samples_by_location,
-                "recent_samples": recent_samples
+                "recent_samples": recent_samples,
+                "visits_last_7_days": visits_data,
+                "visits_last_year_monthly": visits_monthly_data,
+                "total_visits_30_days": total_visits
             }
             
     except psycopg2.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    finally:
+        connection.close()
+
+@router.get("/logs/{service}")
+def get_service_logs(
+    service: str, 
+    lines: int = 100,
+    token: str = Depends(verify_admin_token)
+):
+    """Get logs for a specific service"""
+    import subprocess
+    import datetime
+    
+    # Map service names to container names
+    service_containers = {
+        "backend": "aigualba-backend-1",
+        "frontend": "aigualba-frontend-1", 
+        "database": "aigualba-db-1",
+        "nginx": "aigualba-nginx-1",
+        "keycloak": "aigualba_keycloak_dev"
+    }
+    
+    if service not in service_containers:
+        raise HTTPException(status_code=400, detail=f"Unknown service: {service}")
+    
+    container_name = service_containers[service]
+    
+    try:
+        # Try to get logs using docker command
+        result = subprocess.run(
+            ["docker", "logs", container_name, "--tail", str(lines)], 
+            capture_output=True, 
+            text=True, 
+            timeout=30
+        )
+        
+        if result.returncode == 0:
+            logs = result.stdout.split('\n')
+            # Also include stderr if available
+            if result.stderr:
+                logs.extend(['--- STDERR ---'] + result.stderr.split('\n'))
+            
+            # Filter out empty lines
+            logs = [line for line in logs if line.strip()]
+            
+            return {
+                "service": service,
+                "container": container_name,
+                "logs": logs,
+                "timestamp": datetime.datetime.now().isoformat(),
+                "lines_requested": lines,
+                "lines_returned": len(logs)
+            }
+        else:
+            return {
+                "service": service,
+                "container": container_name,
+                "logs": [f"Error getting logs: {result.stderr}"],
+                "timestamp": datetime.datetime.now().isoformat(),
+                "error": True
+            }
+            
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=408, detail="Timeout getting logs")
+    except FileNotFoundError:
+        # Docker not available, return system info
+        return {
+            "service": service,
+            "container": container_name,
+            "logs": [
+                f"Docker CLI not available in container",
+                f"Cannot fetch logs for {service}",
+                f"This endpoint requires Docker CLI access"
+            ],
+            "timestamp": datetime.datetime.now().isoformat(),
+            "error": True
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting logs: {str(e)}")
+
+@router.get("/logs")
+def get_all_services_logs(
+    lines: int = 50,
+    token: str = Depends(verify_admin_token)
+):
+    """Get logs for all services"""
+    from datetime import datetime
+    
+    services = ["backend", "frontend", "database", "nginx", "keycloak"]
+    all_logs = {}
+    
+    for service in services:
+        try:
+            # Get logs for each service
+            service_logs = get_service_logs(service, lines, token)
+            all_logs[service] = service_logs
+        except Exception as e:
+            all_logs[service] = {
+                "service": service,
+                "logs": [f"Error fetching logs: {str(e)}"],
+                "error": True
+            }
+    
+    return {
+        "timestamp": datetime.now().isoformat(),
+        "services": all_logs
+    }
+
+@router.get("/visits")
+def get_visits_statistics(
+    days: int = 30,
+    token: str = Depends(verify_admin_token)
+):
+    """Get visits statistics for the last N days"""
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            # Get visits by day for the last N days
+            cursor.execute("""
+                SELECT 
+                    DATE(timestamp) as visit_date,
+                    COUNT(*) as visits,
+                    COUNT(DISTINCT ip_address) as unique_visitors
+                FROM visits 
+                WHERE timestamp >= NOW() - INTERVAL '%s days'
+                GROUP BY DATE(timestamp)
+                ORDER BY visit_date ASC
+            """, (days,))
+            
+            daily_visits = []
+            for row in cursor.fetchall():
+                daily_visits.append({
+                    "date": row[0].strftime('%Y-%m-%d'),
+                    "visits": row[1],
+                    "unique_visitors": row[2]
+                })
+            
+            # Get visits by page for the last N days
+            cursor.execute("""
+                SELECT 
+                    page,
+                    COUNT(*) as visits,
+                    COUNT(DISTINCT ip_address) as unique_visitors
+                FROM visits 
+                WHERE timestamp >= NOW() - INTERVAL '%s days'
+                GROUP BY page
+                ORDER BY visits DESC
+            """, (days,))
+            
+            page_visits = []
+            for row in cursor.fetchall():
+                page_visits.append({
+                    "page": row[0],
+                    "visits": row[1],
+                    "unique_visitors": row[2]
+                })
+            
+            # Get total visits and unique visitors
+            cursor.execute("""
+                SELECT 
+                    COUNT(*) as total_visits,
+                    COUNT(DISTINCT ip_address) as total_unique_visitors
+                FROM visits 
+                WHERE timestamp >= NOW() - INTERVAL '%s days'
+            """, (days,))
+            
+            totals = cursor.fetchone()
+            
+            return {
+                "period_days": days,
+                "total_visits": totals[0] if totals else 0,
+                "total_unique_visitors": totals[1] if totals else 0,
+                "daily_visits": daily_visits,
+                "page_visits": page_visits
+            }
+            
+    except psycopg2.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    finally:
+        connection.close()
+
+@router.post("/visits")
+def track_visit(
+    visit_data: Dict[str, Any]
+):
+    """Track a page visit (no authentication required for tracking)"""
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO visits (page, user_agent, ip_address) 
+                VALUES (%s, %s, %s)
+            """, (
+                visit_data.get('page', 'unknown'),
+                visit_data.get('user_agent', ''),
+                visit_data.get('ip_address', '')
+            ))
+            
+            connection.commit()
+            return {"message": "Visit tracked successfully"}
+            
+    except psycopg2.Error as e:
+        connection.rollback()
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     finally:
         connection.close()

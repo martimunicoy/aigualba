@@ -145,7 +145,8 @@ def create_layout():
                 # Admin navigation tabs
                 html.Div([
                     html.Button("Gestió de Mostres", id='tab-samples', className='admin-tab active-tab'),
-                    html.Button("Estadístiques", id='tab-stats', className='admin-tab')
+                    html.Button("Estadístiques", id='tab-stats', className='admin-tab'),
+                    html.Button("Logs del Sistema", id='tab-logs', className='admin-tab')
                 ], className='admin-tabs', style={
                     'marginBottom': '2rem',
                     'borderBottom': '2px solid #dee2e6'
@@ -158,6 +159,7 @@ def create_layout():
                 dcc.Store(id='admin-active-tab', data='samples'),
                 dcc.Store(id='admin-samples-data', data=[]),
                 dcc.Store(id='admin-stats-data', data={}),
+                dcc.Store(id='admin-logs-data', data=[]),
                 
                 # Status messages
                 html.Div(id='admin-status-message', style={'marginTop': '1rem'})
