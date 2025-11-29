@@ -675,30 +675,17 @@ def handle_sample_submission(n_clicks, sample_date, punt_mostreig, temperatura, 
     Input('parameter-selector', 'value')
 )
 def update_location_options(selected_parameter):
-    """Update the location selector options based on available data"""
+    """Update the location selector options with all available locations"""
     try:
         samples = fetch_samples(BACKEND_URL)
         if not samples:
             return [{'label': 'Tots els punts', 'value': 'all'}]
         
-        # Get unique locations that have data for the selected parameter
-        locations = set()
-        for sample in samples:
-            # Special handling for calculated fields
-            if selected_parameter == 'suma_haloacetics':
-                from utils.helpers import calculate_suma_haloacetics
-                param_value = calculate_suma_haloacetics(sample)
-            elif selected_parameter == 'clor_combinat_residual':
-                from utils.helpers import calculate_clor_combinat_residual
-                param_value = calculate_clor_combinat_residual(sample)
-            else:
-                param_value = sample.get(selected_parameter)
-                
-            if param_value is not None and sample.get('punt_mostreig'):
-                locations.add(sample.get('punt_mostreig'))
+        # Get all unique locations regardless of parameter data
+        locations = get_unique_locations(samples)
         
         options = [{'label': 'Tots els punts', 'value': 'all'}]
-        for location in sorted(locations):
+        for location in locations:
             options.append({'label': location, 'value': location})
         
         return options
