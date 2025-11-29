@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: aigualba_keycloak
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin123
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://db:5432/aigualba
+      - KC_DB_USERNAME=aigualba_user
+      - KC_DB_PASSWORD=aigualba_pass
+      - KC_HOSTNAME=localhost
+      - KC_HOSTNAME_PORT=8080
+      - KC_HTTP_ENABLED=true
+      - KC_HOSTNAME_STRICT_HTTPS=false
+    ports:
+      - "8080:8080"
+    command: start-dev
+    depends_on:
+      - db
+    networks:
+      - aigualba_network
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+
+  keycloak-config:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: aigualba_keycloak_config
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin123
+    depends_on:
+      - keycloak
+    networks:
+      - aigualba_network
+    volumes:
+      - ./keycloak/realm-import.json:/opt/keycloak/data/import/realm-import.json
+    command: >
+      bash -c "
+        sleep 30 &&
+        /opt/keycloak/bin/kc.sh import --file /opt/keycloak/data/import/realm-import.json --override true
+      "
+    restart: "no"
+
+volumes:
+  keycloak_data:
+
+networks:
+  aigualba_network:
+    external: true

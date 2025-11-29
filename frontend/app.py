@@ -17,6 +17,9 @@ from pages.about import create_about_page
 from pages.browse import create_browse_page
 from pages.submit import create_submit_page
 from pages.visualize import create_visualize_page
+from pages.admin import layout as admin_layout
+# Import admin callbacks to register them
+import callbacks.admin_callbacks
 from utils.helpers import (get_backend_url, fetch_parameters, create_parameter_card, create_data_table, 
                            submit_sample_data, validate_sample_data, fetch_samples, create_samples_table, create_sample_details,
                            create_data_visualizations, filter_samples_by_criteria, get_unique_locations, 
@@ -149,6 +152,8 @@ def display_page(pathname, search):
         return create_visualize_page()
     elif pathname == '/submit':
         return create_submit_page()
+    elif pathname == '/admin':
+        return admin_layout
     elif pathname and pathname.startswith('/sample/'):
         # Handle direct sample detail pages like /sample/123
         try:

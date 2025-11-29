@@ -9,7 +9,7 @@ def create_browse_page():
     """Create the browse data page layout"""
     return html.Div([
         html.Div([
-            html.H1("Mostres d'aigua", 
+            html.H1("Explora les mostres", 
                    style={
                        'color': '#2c3e50', 
                        'fontSize': '2.5rem', 

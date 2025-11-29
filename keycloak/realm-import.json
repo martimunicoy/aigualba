@@ -1,0 +1,74 @@
+{
+  "realm": "aigualba",
+  "enabled": true,
+  "displayName": "Aigualba Water Quality Management",
+  "loginTheme": "keycloak",
+  "adminTheme": "keycloak",
+  "accountTheme": "keycloak",
+  "emailTheme": "keycloak",
+  "accessTokenLifespan": 3600,
+  "accessTokenLifespanForImplicitFlow": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "offlineSessionIdleTimeout": 2592000,
+  "accessCodeLifespan": 60,
+  "accessCodeLifespanUserAction": 300,
+  "accessCodeLifespanLogin": 1800,
+  "actionTokenGeneratedByAdminLifespan": 43200,
+  "actionTokenGeneratedByUserLifespan": 300,
+  "oauth2DeviceCodeLifespan": 600,
+  "oauth2DevicePollingInterval": 5,
+  "clients": [
+    {
+      "clientId": "aigualba-frontend",
+      "name": "Aigualba Frontend Application",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "aigualba-frontend-secret-123",
+      "redirectUris": [
+        "http://localhost:8050/*",
+        "http://localhost:3000/*",
+        "http://frontend:8050/*"
+      ],
+      "webOrigins": [
+        "http://localhost:8050",
+        "http://localhost:3000",
+        "http://frontend:8050"
+      ],
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "fullScopeAllowed": true
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Administrator role with full access to water quality management system"
+      }
+    ]
+  },
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "firstName": "System",
+      "lastName": "Administrator",
+      "email": "admin@aigualba.local",
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["admin"]
+    }
+  ]
+}

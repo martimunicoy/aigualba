@@ -58,7 +58,7 @@ def create_submit_page():
     """Create the submit data page layout"""
     return html.Div([
         html.Div([
-            html.H1("Nova mostra d'aigua", 
+            html.H1("Aporta una nova mostra", 
                    style={
                        'color': '#2c3e50', 
                        'fontSize': '2.5rem', 
@@ -159,7 +159,7 @@ def create_submit_page():
             html.Div([
             # Submit button
             html.Div([
-                html.Button("Enviar mostra", 
+                html.Button("Aporta una nova mostra", 
                           id="submit-sample-button", 
                           className='btn-standard btn-submit',
                           style={

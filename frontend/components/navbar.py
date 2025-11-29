@@ -25,14 +25,16 @@ def create_navbar():
                 
                 # Navigation menu
                 html.Ul([
-                    html.Li([html.A("Explora les dades", href="/browse", id="nav-browse", 
+                    html.Li([html.A("Explora", href="/browse", id="nav-browse", 
                                    className='nav-link')]),
-                    html.Li([html.A("Visualitza les dades", href="/visualize", id="nav-visualize", 
+                    html.Li([html.A("Visualitza", href="/visualize", id="nav-visualize", 
                                    className='nav-link')]),
-                    html.Li([html.A("Aporta noves dades", href="/submit", id="nav-submit", 
+                    html.Li([html.A("Aporta", href="/submit", id="nav-submit", 
                                    className='nav-link')]),
                     html.Li([html.A("Qui som", href="/about", id="nav-about", 
                                    className='nav-link')]),
+                    html.Li([html.A("Administració", href="/admin", id="nav-admin", 
+                                   className='nav-link admin-link')]),
                 ], className='nav-menu', id='nav-menu')
             ], className='navbar-nav')
         ], className='navbar-container')

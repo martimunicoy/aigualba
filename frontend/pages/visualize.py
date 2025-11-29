@@ -7,7 +7,7 @@ def create_visualize_page():
     """Create the data visualization page layout"""
     return html.Div([
         html.Div([
-            html.H1("Visualitza les dades", 
+            html.H1("Visualitza les mostres", 
                    style={
                        'color': '#2c3e50', 
                        'fontSize': '2.5rem', 
