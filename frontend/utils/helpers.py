@@ -556,6 +556,7 @@ def create_latest_sample_summary(sample):
             html.Div([
                 html.Button("Veure detalls complets →",
                           id='home-sample-details-btn',
+                          className='btn-standard btn-home-details',
                           style={
                               'backgroundColor': '#3498db', 
                               'color': 'white', 
@@ -701,15 +702,19 @@ def create_samples_table(samples, current_page=1, page_size=10, sort_column='dat
             detail_link = dcc.Link(
                 "Veure Detalls",
                 href=f"/sample/{sample_id}?ref=browse",
+                className='btn-standard btn-details',
                 style={
-                    'color': '#007bff',
+                    'color': 'white',
                     'textDecoration': 'none',
-                    'padding': '0.5rem 1rem',
-                    'backgroundColor': '#f8f9fa',
-                    'border': '1px solid #007bff',
-                    'borderRadius': '4px',
+                    'padding': '12px 24px',
+                    'backgroundColor': '#3498db',
+                    'border': 'none',
+                    'borderRadius': '6px',
                     'display': 'inline-block',
-                    'fontSize': '0.9rem'
+                    'fontSize': '1rem',
+                    'boxShadow': '0 4px 8px rgba(0,0,0,0.3)',
+                    'transition': 'all 0.2s ease',
+                    'cursor': 'pointer'
                 }
             )
         else:
@@ -1046,9 +1051,22 @@ def create_sample_details(sample, referrer="/browse"):
                 # Back link
                 html.Div([
                     dcc.Link("← Tornar a la llista" if referrer == "/browse" else "← Tornar", 
-                            href=referrer, 
-                            style={'color': '#007bff', 'textDecoration': 'none', 'fontSize': '1.1rem'})
-                ], style={'textAlign': 'center', 'marginTop': '3rem'})
+                            href=referrer,
+                            className='btn-standard btn-home-details',
+                            style={
+                                'backgroundColor': '#3498db',
+                                'color': 'white',
+                                'border': 'none',
+                                'padding': '12px 24px',
+                                'borderRadius': '6px',
+                                'fontSize': '1rem',
+                                'cursor': 'pointer',
+                                'boxShadow': '0 4px 8px rgba(0,0,0,0.3)',
+                                'transition': 'all 0.2s ease',
+                                'textDecoration': 'none',
+                                'display': 'inline-block'
+                            })
+                ], style={'textAlign': 'center', 'marginTop': '2rem'})
             ], style={
                 'backgroundColor': 'white', 
                 'margin': '1rem 0', 

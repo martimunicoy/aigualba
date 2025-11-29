@@ -161,6 +161,7 @@ def create_submit_page():
             html.Div([
                 html.Button("Enviar mostra", 
                           id="submit-sample-button", 
+                          className='btn-standard btn-submit',
                           style={
                               'backgroundColor': '#3498db', 
                               'color': 'white', 
@@ -172,7 +173,7 @@ def create_submit_page():
                               'boxShadow': '0 4px 8px rgba(0,0,0,0.3)',
                               'transition': 'all 0.2s ease'
                           })
-            ], style={'textAlign': 'center', 'marginTop': '1.5rem'}),
+            ], style={'textAlign': 'center'}),
             html.Div(id="submit-sample-status", style={'display': 'none'})
 
             ], style={

@@ -214,6 +214,37 @@ body {
     transition: all 0.3s ease;
 }
 
+/* Standardized button hover effects */
+.btn-standard {
+    transition: all 0.2s ease !important;
+}
+
+.btn-standard:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important;
+}
+
+/* Specific button type hover effects */
+.btn-clear-filters:hover {
+    background-color: #5a6268 !important;
+}
+
+.btn-export-csv:hover {
+    background-color: #218838 !important;
+}
+
+.btn-submit:hover {
+    background-color: #2980b9 !important;
+}
+
+.btn-details:hover {
+    background-color: #2980b9 !important;
+}
+
+.btn-home-details:hover {
+    background-color: #2980b9 !important;
+}
+
 /* Home Page Styles */
 .hero-section {
     position: relative;
@@ -1076,7 +1107,7 @@ border-radius: 0;
 /* Sort button hover effects */
 .samples-table thead th button:hover {
     background-color: rgba(0, 123, 255, 0.1) !important;
-    color: #0056b3 !important;
+    color: #2980b9 !important;
     border-radius: 4px;
 }
 
@@ -1087,7 +1118,7 @@ border-radius: 0;
 }
 
 .samples-table tbody td a:hover {
-    background-color: #007bff !important;
+    background-color: #2980b9!important;
     color: white !important;
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);

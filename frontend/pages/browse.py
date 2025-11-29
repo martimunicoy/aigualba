@@ -81,28 +81,34 @@ def create_browse_page():
                         html.Button(
                             "Netejar filtres",
                             id='clear-filters-btn',
+                            className='btn-standard btn-clear-filters',
                             style={
                                 'backgroundColor': '#6c757d',
                                 'color': 'white',
                                 'border': 'none',
-                                'padding': '0.5rem 1rem',
-                                'borderRadius': '4px',
+                                'padding': '12px 24px',
+                                'borderRadius': '6px',
                                 'cursor': 'pointer',
-                                'fontSize': '0.9rem',
-                                'marginRight': '1rem'
+                                'fontSize': '1rem',
+                                'marginRight': '20px',
+                                'boxShadow': '0 4px 8px rgba(0,0,0,0.3)',
+                                'transition': 'all 0.2s ease'
                             }
                         ),
                         html.Button(
                             "Exportar a CSV",
                             id='export-csv-btn',
+                            className='btn-standard btn-export-csv',
                             style={
                                 'backgroundColor': '#28a745',
                                 'color': 'white',
                                 'border': 'none',
-                                'padding': '0.5rem 1rem',
-                                'borderRadius': '4px',
+                                'padding': '12px 24px',
+                                'borderRadius': '6px',
                                 'cursor': 'pointer',
-                                'fontSize': '0.9rem'
+                                'fontSize': '1rem',
+                                'boxShadow': '0 4px 8px rgba(0,0,0,0.3)',
+                                'transition': 'all 0.2s ease'
                             }
                         )
                     ], style={'textAlign': 'center'})
