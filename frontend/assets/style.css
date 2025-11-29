@@ -103,7 +103,7 @@ body {
 }
 
 /* Mobile Navbar Styles */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
     .navbar-container {
         padding: 0 1rem;
         flex-wrap: wrap;
@@ -243,6 +243,17 @@ body {
 
 .btn-home-details:hover {
     background-color: #2980b9 !important;
+}
+
+.btn-subscribe:hover {
+    background-color: #229954 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.btn-standard:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
 
 /* Home Page Styles */

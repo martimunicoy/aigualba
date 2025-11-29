@@ -189,29 +189,275 @@ def create_home_page():
             'width': '100vw'
         }),
 
+        # Mailing List Subscription Section
+        # TODO: Temporarily disabled - uncomment to reactivate
+        
+        # Active subscription form (commented out)
+        # html.Div([
+        #     html.Div([
+        #         html.H2("Mantén-te informat", 
+        #                style={
+        #                    'color': '#2c3e50', 
+        #                    'fontSize': '2rem', 
+        #                    'marginBottom': '1rem', 
+        #                    'textAlign': 'center'
+        #                }),
+        #         
+        #         html.P([
+        #             "Subscriu-te a la nostra llista de correu per rebre notificacions sobre noves mostres, ",
+        #             "alertes de qualitat de l'aigua i actualitzacions del sistema de monitorització."
+        #         ], style={
+        #             'fontSize': '1.1rem', 
+        #             'lineHeight': '1.6', 
+        #             'color': '#34495e',
+        #             'textAlign': 'center',
+        #             'marginBottom': '2rem',
+        #             'maxWidth': '600px',
+        #             'margin': '0 auto 2rem auto'
+        #         }),
+        #         
+        #         html.Div([
+        #             html.Div([
+        #                 dcc.Input(
+        #                     id='email-input',
+        #                     type='email',
+        #                     placeholder='Introdueix el teu correu electrònic',
+        #                     style={
+        #                         'padding': '12px 16px',
+        #                         'fontSize': '1rem',
+        #                         'border': '2px solid #e0e0e0',
+        #                         'borderRadius': '6px 0 0 6px',
+        #                         'width': '300px',
+        #                         'boxSizing': 'border-box',
+        #                         'outline': 'none',
+        #                         'transition': 'border-color 0.3s ease'
+        #                     }
+        #                 ),
+        #                 html.Button(
+        #                     "Subscriure's",
+        #                     id='subscribe-btn',
+        #                     className='btn-standard btn-subscribe',
+        #                     style={
+        #                         'backgroundColor': '#27ae60',
+        #                         'color': 'white',
+        #                         'border': 'none',
+        #                         'padding': '12px 24px',
+        #                         'borderRadius': '0 6px 6px 0',
+        #                         'fontSize': '1rem',
+        #                         'cursor': 'pointer',
+        #                         'boxShadow': '0 4px 8px rgba(0,0,0,0.3)',
+        #                         'transition': 'all 0.2s ease',
+        #                         'marginLeft': '-1px'
+        #                     }
+        #                 )
+        #             ], style={
+        #                 'display': 'flex',
+        #                 'justifyContent': 'center',
+        #                 'marginBottom': '1rem'
+        #             }),
+        #             
+        #             html.Div(id='subscription-status', style={
+        #                 'textAlign': 'center',
+        #                 'marginTop': '1rem',
+        #                 'display': 'none'
+        #             }),
+        #             
+        #             # Hidden store to track subscription state
+        #             dcc.Store(id='subscription-state', data={'confirmed': False, 'email': ''}),
+        #             
+        #             html.P([
+        #                 "✓ Notificacions de noves mostres",
+        #                 html.Br(),
+        #                 "✓ Alertes de qualitat de l'aigua",
+        #                 html.Br(),
+        #                 "✓ Informes mensuals de qualitat",
+        #                 html.Br(),
+        #                 "✓ Pots cancel·lar la subscripció en qualsevol moment"
+        #             ], style={
+        #                 'fontSize': '0.9rem',
+        #                 'color': '#7f8c8d',
+        #                 'textAlign': 'center',
+        #                 'lineHeight': '1.8',
+        #                 'marginTop': '1.5rem'
+        #             })
+        #         ])
+        #     ], style={
+        #         'maxWidth': '600px',
+        #         'margin': '0 auto',
+        #         'padding': '0 2rem'
+        #     })
+        # ], style={
+        #     'backgroundColor': 'white', 
+        #     'margin': '2rem auto', 
+        #     'padding': '3rem 0', 
+        #     'borderRadius': '10px', 
+        #     'boxShadow': '0 4px 20px rgba(0,0,0,0.1)', 
+        #     'maxWidth': '1200px',
+        #     'width': '100vw'
+        # }),
+        
+        # Temporary "Coming Soon" message (remove when reactivating subscription)
+        html.Div([
+            html.Div([
+                html.H2("Mantén-te informat", 
+                       style={
+                           'color': '#2c3e50', 
+                           'fontSize': '2rem', 
+                           'marginBottom': '1rem', 
+                           'textAlign': 'center'
+                       }),
+                
+                html.P([
+                    "La subscripció a la nostra llista de correu estarà disponible properament. ",
+                    "Torneu aviat per rebre notificacions sobre noves mostres, alertes de qualitat de l'aigua ",
+                    "i actualitzacions del sistema de monitorització."
+                ], style={
+                    'fontSize': '1.1rem', 
+                    'lineHeight': '1.6', 
+                    'color': '#34495e',
+                    'textAlign': 'center',
+                    'marginBottom': '2rem',
+                    'maxWidth': '600px',
+                    'margin': '0 auto 2rem auto'
+                }),
+                
+                html.Div([
+                    html.Div([
+                        html.I(className="fas fa-clock", style={
+                            'fontSize': '3rem',
+                            'color': '#f39c12',
+                            'marginBottom': '1rem'
+                        }),
+                        html.H3("Funcionalitat en desenvolupament", style={
+                            'color': '#f39c12',
+                            'fontSize': '1.4rem',
+                            'marginBottom': '1rem'
+                        }),
+                        html.P("Estem treballant per oferir-vos aquesta funcionalitat aviat.", style={
+                            'color': '#7f8c8d',
+                            'fontSize': '1rem'
+                        })
+                    ], style={
+                        'textAlign': 'center',
+                        'padding': '2rem',
+                        'backgroundColor': '#fff9e6',
+                        'border': '2px dashed #f39c12',
+                        'borderRadius': '8px',
+                        'maxWidth': '400px',
+                        'margin': '0 auto'
+                    }),
+                    
+                    html.P([
+                        "✓ Notificacions de noves mostres",
+                        html.Br(),
+                        "✓ Alertes de qualitat de l'aigua",
+                        html.Br(),
+                        "✓ Informes mensuals de qualitat",
+                        html.Br(),
+                        "✓ Sistema fàcil de cancel·lació"
+                    ], style={
+                        'fontSize': '0.9rem',
+                        'color': '#7f8c8d',
+                        'textAlign': 'center',
+                        'lineHeight': '1.8',
+                        'marginTop': '1.5rem'
+                    })
+                ])
+            ], style={
+                'maxWidth': '600px',
+                'margin': '0 auto',
+                'padding': '0 2rem'
+            })
+        ], style={
+            'backgroundColor': 'white', 
+            'margin': '2rem auto', 
+            'padding': '3rem 0', 
+            'borderRadius': '10px', 
+            'boxShadow': '0 4px 20px rgba(0,0,0,0.1)', 
+            'maxWidth': '1200px',
+            'width': '100vw'
+        }),
+
         # Information Section
         html.Div([
             html.Div([
-                html.H3("Què monitoritgem?"),
-                html.P("Seguim els paràmetres clau de la qualitat de l'aigua per garantir un subministrament segur i de qualitat."),
-                html.Ul([
-                    html.Li("Nivell de pH - Equilibri àcid/alcalí"),
-                    html.Li("Temperatura - Lectures de temperatura de l'aigua"),
-                    html.Li("Turbiditat - Mesures de claredat de l'aigua"),
-                    html.Li("Oxigen dissolt"),
-                    html.Li("Composició química")
-                ])
-            ], className='info-card'),
-            
-            html.Div([
-                html.H3("Com participar?"),
-                html.P("La participació ciutadana és clau per mantenir un control exhaustiu de la qualitat de l'aigua."),
-                html.Ul([
-                    html.Li("Consulta les dades en temps real"),
-                    html.Li("Aporta noves mesures des del teu punt de recollida"),
-                    html.Li("Reporta incidències o anomalies"),
-                    html.Li("Col·labora amb la comunitat científica local")
-                ])
-            ], className='info-card')
-        ], className='info-section')
+                html.Div([
+                    html.H3("Què monitoritgem?", style={
+                        'color': '#2c3e50',
+                        'fontSize': '1.8rem',
+                        'marginBottom': '1rem',
+                        'textAlign': 'center'
+                    }),
+                    html.P("Seguim els paràmetres clau de la qualitat de l'aigua per garantir un subministrament segur i de qualitat.", style={
+                        'fontSize': '1rem',
+                        'color': '#7f8c8d',
+                        'textAlign': 'center',
+                        'marginBottom': '1.5rem',
+                        'lineHeight': '1.6'
+                    }),
+                    html.Ul([
+                        html.Li("Nivell de pH - Equilibri àcid/alcalí"),
+                        html.Li("Temperatura - Lectures de temperatura de l'aigua"),
+                        html.Li("Turbiditat - Mesures de claredat de l'aigua"),
+                        html.Li("Oxigen dissolt"),
+                        html.Li("Composició química")
+                    ], style={
+                        'fontSize': '0.95rem',
+                        'color': '#34495e',
+                        'lineHeight': '1.8',
+                        'paddingLeft': '1.5rem'
+                    })
+                ], style={
+                    'flex': '1',
+                    'minWidth': '300px',
+                    'padding': '2rem'
+                }),
+                
+                html.Div([
+                    html.H3("Com participar?", style={
+                        'color': '#2c3e50',
+                        'fontSize': '1.8rem',
+                        'marginBottom': '1rem',
+                        'textAlign': 'center'
+                    }),
+                    html.P("La participació ciutadana és clau per mantenir un control exhaustiu de la qualitat de l'aigua.", style={
+                        'fontSize': '1rem',
+                        'color': '#7f8c8d',
+                        'textAlign': 'center',
+                        'marginBottom': '1.5rem',
+                        'lineHeight': '1.6'
+                    }),
+                    html.Ul([
+                        html.Li("Consulta les dades en temps real"),
+                        html.Li("Aporta noves mesures des del teu punt de recollida"),
+                        html.Li("Reporta incidències o anomalies"),
+                        html.Li("Col·labora amb la comunitat científica local")
+                    ], style={
+                        'fontSize': '0.95rem',
+                        'color': '#34495e',
+                        'lineHeight': '1.8',
+                        'paddingLeft': '1.5rem'
+                    })
+                ], style={
+                    'flex': '1',
+                    'minWidth': '300px',
+                    'padding': '2rem'
+                })
+            ], style={
+                'display': 'flex',
+                'gap': '2rem',
+                'flexWrap': 'wrap',
+                'maxWidth': '1000px',
+                'margin': '0 auto',
+                'padding': '0 2rem'
+            })
+        ], style={
+            'backgroundColor': 'white',
+            'margin': '2rem auto',
+            'padding': '3rem 0',
+            'borderRadius': '10px',
+            'boxShadow': '0 4px 20px rgba(0,0,0,0.1)',
+            'maxWidth': '1200px',
+            'width': '100vw'
+        })
     ])

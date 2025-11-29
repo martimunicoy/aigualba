@@ -265,6 +265,179 @@ def navigate_to_home_sample_details(n_clicks, sample_id):
         return f'/sample/{sample_id}?ref=home'
     return dash.no_update
 
+# Note: Mail subscription feature temporarily disabled
+# To reactivate: uncomment the callbacks below and the form in home.py
+
+# Callback for mailing list subscription
+# @app.callback(
+#     [Output('subscription-status', 'children'),
+#      Output('subscription-status', 'style'),
+#      Output('email-input', 'value'),
+#      Output('subscription-state', 'data')],
+#     [Input('subscribe-btn', 'n_clicks')],
+#     [State('email-input', 'value'),
+#      State('subscription-state', 'data')],
+#     prevent_initial_call=True
+# )
+# def handle_subscription(n_clicks, email_value, subscription_state):
+#     """Handle mailing list subscription with confirmation"""
+#     if not n_clicks or not email_value:
+#         return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+#     
+#     # Basic email validation
+#     import re
+#     email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+#     
+#     if not re.match(email_pattern, email_value):
+#         return (
+#             html.Div([
+#                 html.P("Si us plau, introdueix un correu electrònic vàlid.", 
+#                        style={'color': '#e74c3c', 'margin': '0', 'fontWeight': '500'})
+#             ]), 
+#             {'textAlign': 'center', 'marginTop': '1rem', 'display': 'block'}, 
+#             dash.no_update,
+#             dash.no_update
+#         )
+#     
+#     # Check if this is the confirmation step
+#     if subscription_state.get('confirmed') and subscription_state.get('email') == email_value:
+#         # Actually process the subscription
+#         try:
+#             # TODO: Integrate with actual mailing list service (Mailchimp, ConvertKit, etc.)
+#             # Example: requests.post(MAILING_LIST_API_URL, data={'email': email_value})
+#             
+#             return (
+#                 html.Div([
+#                     html.P([
+#                         html.I(className="fas fa-check-circle", style={'marginRight': '8px', 'color': '#27ae60'}),
+#                         "Gràcies! T'has subscrit correctament a la nostra llista de correu."
+#                     ], style={'color': '#27ae60', 'margin': '0', 'fontWeight': '500'})
+#                 ]), 
+#                 {'textAlign': 'center', 'marginTop': '1rem', 'display': 'block'}, 
+#                 '',
+#                 {'confirmed': False, 'email': ''}
+#             )
+#             
+#         except Exception as e:
+#             return (
+#                 html.Div([
+#                     html.P("Hi ha hagut un error. Si us plau, torna-ho a intentar més tard.", 
+#                            style={'color': '#e74c3c', 'margin': '0', 'fontWeight': '500'})
+#                 ]), 
+#                 {'textAlign': 'center', 'marginTop': '1rem', 'display': 'block'}, 
+#                 dash.no_update,
+#                 {'confirmed': False, 'email': ''}
+#             )
+#     else:
+#         # Show confirmation message
+#         return (
+#             html.Div([
+#                 html.P([
+#                     f"Vols subscriure't amb el correu ",
+#                     html.Strong(email_value, style={'color': '#2c3e50'}),
+#                     "?"
+#                 ], style={'color': '#34495e', 'margin': '0 0 1rem 0', 'fontWeight': '500'}),
+#                 html.Div([
+#                     html.Button(
+#                         "Sí, confirmo",
+#                         id='confirm-subscription-btn',
+#                         className='btn-standard btn-subscribe',
+#                         style={
+#                             'backgroundColor': '#27ae60',
+#                             'color': 'white',
+#                             'border': 'none',
+#                             'padding': '8px 16px',
+#                             'borderRadius': '4px',
+#                             'fontSize': '0.9rem',
+#                             'cursor': 'pointer',
+#                             'marginRight': '0.5rem',
+#                             'boxShadow': '0 2px 4px rgba(0,0,0,0.2)',
+#                             'transition': 'all 0.2s ease'
+#                         }
+#                     ),
+#                     html.Button(
+#                         "Cancel·lar",
+#                         id='cancel-subscription-btn',
+#                         className='btn-standard',
+#                         style={
+#                             'backgroundColor': '#95a5a6',
+#                             'color': 'white',
+#                             'border': 'none',
+#                             'padding': '8px 16px',
+#                             'borderRadius': '4px',
+#                             'fontSize': '0.9rem',
+#                             'cursor': 'pointer',
+#                             'boxShadow': '0 2px 4px rgba(0,0,0,0.2)',
+#                             'transition': 'all 0.2s ease'
+#                         }
+#                     )
+#                 ], style={'textAlign': 'center'})
+#             ]), 
+#             {'textAlign': 'center', 'marginTop': '1rem', 'display': 'block'}, 
+#             dash.no_update,
+#             {'confirmed': True, 'email': email_value}
+#         )
+
+
+# Callback for subscription confirmation buttons
+# @app.callback(
+#     [Output('subscription-status', 'children', allow_duplicate=True),
+#      Output('subscription-status', 'style', allow_duplicate=True),
+#      Output('email-input', 'value', allow_duplicate=True),
+#      Output('subscription-state', 'data', allow_duplicate=True)],
+#     [Input('confirm-subscription-btn', 'n_clicks'),
+#      Input('cancel-subscription-btn', 'n_clicks')],
+#     [State('subscription-state', 'data')],
+#     prevent_initial_call=True
+# )
+# def handle_confirmation(confirm_clicks, cancel_clicks, subscription_state):
+#     """Handle confirmation or cancellation of subscription"""
+#     ctx = dash.callback_context
+#     if not ctx.triggered:
+#         return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+#     
+#     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+#     
+#     if button_id == 'confirm-subscription-btn':
+#         # Process the subscription
+#         email_value = subscription_state.get('email', '')
+#         try:
+#             # TODO: Integrate with actual mailing list service
+#             # Example: requests.post(MAILING_LIST_API_URL, data={'email': email_value})
+#             
+#             return (
+#                 html.Div([
+#                     html.P([
+#                         html.I(className="fas fa-check-circle", style={'marginRight': '8px', 'color': '#27ae60'}),
+#                         "Gràcies! T'has subscrit correctament a la nostra llista de correu."
+#                     ], style={'color': '#27ae60', 'margin': '0', 'fontWeight': '500'})
+#                 ]),
+#                 {'textAlign': 'center', 'marginTop': '1rem', 'display': 'block'},
+#                 '',
+#                 {'confirmed': False, 'email': ''}
+#             )
+#         except Exception as e:
+#             return (
+#                 html.Div([
+#                     html.P("Hi ha hagut un error. Si us plau, torna-ho a intentar més tard.", 
+#                            style={'color': '#e74c3c', 'margin': '0', 'fontWeight': '500'})
+#                 ]),
+#                 {'textAlign': 'center', 'marginTop': '1rem', 'display': 'block'},
+#                 dash.no_update,
+#                 {'confirmed': False, 'email': ''}
+#             )
+#     
+#     elif button_id == 'cancel-subscription-btn':
+#         # Cancel subscription
+#         return (
+#             html.Div([]),
+#             {'display': 'none'},
+#             dash.no_update,
+#             {'confirmed': False, 'email': ''}
+#         )
+#     
+#     return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+
 # Callback to populate location filter with unique locations
 @app.callback(
     Output('location-filter', 'options'),
