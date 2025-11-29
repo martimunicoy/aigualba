@@ -2,6 +2,10 @@
 
 # Keycloak Setup Script for Aigualba
 # This script helps set up Keycloak for the Aigualba water quality management system
+#
+# Usage:
+#   ./setup-keycloak.sh          # Auto-detects environment (production/development)
+#   ./setup-keycloak.sh --dev    # Force development mode
 
 echo "🌊 Aigualba Keycloak Setup"
 echo "=========================="
@@ -18,18 +22,41 @@ echo "✅ Docker is running"
 echo "🔌 Creating Docker network..."
 docker network create aigualba_network 2>/dev/null || echo "Network already exists"
 
-# Start Keycloak with docker-compose
-echo "🚀 Starting Keycloak..."
-docker-compose -f docker-compose.keycloak.yml up -d
+# Detect environment and use appropriate compose file
+COMPOSE_FILE="docker-compose.yml"
+if [ -f ".env" ] && grep -q "DASH_DEBUG=1" .env 2>/dev/null; then
+    COMPOSE_FILE="docker-compose.dev.yml"
+    echo "🔍 Development environment detected"
+elif [ "$1" = "--dev" ]; then
+    COMPOSE_FILE="docker-compose.dev.yml"
+    echo "🔍 Development mode forced"
+else
+    echo "🔍 Production environment detected"
+fi
+
+echo "📝 Using compose file: $COMPOSE_FILE"
+
+# Check if database is already running
+if docker-compose -f "$COMPOSE_FILE" ps db | grep -q "Up"; then
+    echo "✅ Database is already running"
+    echo "🚀 Starting Keycloak service..."
+    docker-compose -f "$COMPOSE_FILE" up -d keycloak
+else
+    echo "🚀 Starting database and Keycloak..."
+    docker-compose -f "$COMPOSE_FILE" up -d db keycloak
+fi
 
 echo "⏳ Waiting for Keycloak to start..."
-sleep 30
+sleep 45
 
 # Check if Keycloak is running
-if curl -f http://localhost:8080/health > /dev/null 2>&1; then
+if curl -f http://localhost:8080/health/ready > /dev/null 2>&1; then
     echo "✅ Keycloak is running"
+elif curl -f http://localhost:8080 > /dev/null 2>&1; then
+    echo "✅ Keycloak is running (health endpoint not available yet)"
 else
     echo "⚠️  Keycloak might still be starting. This can take a few minutes."
+    echo "   You can check status with: docker-compose -f $COMPOSE_FILE logs keycloak"
 fi
 
 echo ""
@@ -60,7 +87,8 @@ echo "4. Test the admin login at http://localhost:8051/admin"
 echo ""
 echo "🛠️  Troubleshooting:"
 echo "  - If realm import fails, manually import keycloak/realm-import.json"
-echo "  - Check logs: docker-compose -f docker-compose.keycloak.yml logs"
-echo "  - Restart: docker-compose -f docker-compose.keycloak.yml restart"
+echo "  - Check logs: docker-compose -f $COMPOSE_FILE logs keycloak"
+echo "  - Restart: docker-compose -f $COMPOSE_FILE restart keycloak"
+echo "  - Full restart: docker-compose -f $COMPOSE_FILE down && docker-compose -f $COMPOSE_FILE up -d"
 echo ""
 echo "✨ Setup complete! Happy water quality monitoring!"

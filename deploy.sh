@@ -99,11 +99,18 @@ fi
 # Setup Keycloak if needed
 echo
 echo "🔐 Setting up Keycloak authentication..."
-if [ -f "./setup-keycloak.sh" ]; then
-    chmod +x ./setup-keycloak.sh
-    ./setup-keycloak.sh
+echo "⏳ Waiting for Keycloak to be ready..."
+sleep 30
+
+# Check if Keycloak is accessible and try to import realm
+if curl -f http://localhost:8080 > /dev/null 2>&1; then
+    echo "✅ Keycloak is accessible"
+    # The realm should be imported automatically via the volume mount
+    echo "✅ Keycloak realm should be imported automatically"
+    echo "💡 If realm import fails, you can run: ./setup-keycloak.sh"
 else
-    echo "⚠️  setup-keycloak.sh not found. You may need to configure Keycloak manually."
+    echo "⚠️  Keycloak may still be starting. Please wait a few minutes."
+    echo "💡 You can also run: ./setup-keycloak.sh to ensure proper setup"
 fi
 
 # Display deployment information
@@ -149,6 +156,7 @@ echo "  1. Test the application functionality"
 echo "  2. Configure monitoring and backups"
 echo "  3. Set up SSL/HTTPS (see DEPLOYMENT.md)"
 echo "  4. Review security settings"
+echo "  5. For development, use: docker-compose -f docker-compose.dev.yml up"
 echo
 
 echo "✨ Deployment script completed!"
