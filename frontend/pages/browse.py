@@ -76,13 +76,27 @@ def create_browse_page():
                         ),
                     ], style={'marginBottom': '1rem'}),
                     
-                    # Clear filters button
+                    # Action buttons
                     html.Div([
                         html.Button(
                             "Netejar filtres",
                             id='clear-filters-btn',
                             style={
                                 'backgroundColor': '#6c757d',
+                                'color': 'white',
+                                'border': 'none',
+                                'padding': '0.5rem 1rem',
+                                'borderRadius': '4px',
+                                'cursor': 'pointer',
+                                'fontSize': '0.9rem',
+                                'marginRight': '1rem'
+                            }
+                        ),
+                        html.Button(
+                            "Exportar a CSV",
+                            id='export-csv-btn',
+                            style={
+                                'backgroundColor': '#28a745',
                                 'color': 'white',
                                 'border': 'none',
                                 'padding': '0.5rem 1rem',
@@ -116,6 +130,8 @@ def create_browse_page():
                     dcc.Store(id='table-sort-order', data='desc'),
                     # Hidden stores for filter state
                     dcc.Store(id='filtered-samples', data=[]),
+                    # Download component for CSV export
+                    dcc.Download(id='download-csv'),
                     html.Div(id='samples-table', 
                             style={
                                 'minHeight': '200px'

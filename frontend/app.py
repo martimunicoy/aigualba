@@ -3,6 +3,9 @@ from dash import html, dcc, Input, Output, State, ALL
 import sys
 import os
 import requests
+import csv
+import io
+from datetime import datetime
 
 # Add current directory to Python path for imports
 sys.path.append('/app')
@@ -406,6 +409,72 @@ def handle_pagination(prev_clicks, next_clicks, page_input, current_page):
 )
 def update_page_size(page_size, sort_column, sort_order):
     return page_size, 1  # Reset to page 1 when changing page size
+
+# Callback for CSV export
+@app.callback(
+    Output('download-csv', 'data'),
+    [Input('export-csv-btn', 'n_clicks')],
+    [State('filtered-samples', 'data')],
+    prevent_initial_call=True
+)
+def export_samples_to_csv(export_clicks, filtered_data):
+    """Export filtered samples data to CSV file"""
+    if not export_clicks:
+        return dash.no_update
+    
+    data = filtered_data if filtered_data else []
+    if not data:
+        return dash.no_update
+    
+    # Create CSV content
+    output = io.StringIO()
+    
+    # Define column headers in Catalan and their corresponding keys
+    columns = [
+        ('ID', 'id'),
+        ('Data de recollida', 'data'),
+        ('Punt de mostreig', 'punt_mostreig'),
+        ('pH', 'ph'),
+        ('Temperatura (°C)', 'temperatura'),
+        ('Conductivitat 20°C (μS/cm)', 'conductivitat_20c'),
+        ('Terbolesa (UNF)', 'terbolesa'),
+        ('Color (mg/L Pt-Co)', 'color'),
+        ('Olor (índex dilució 25°C)', 'olor'),
+        ('Sabor (índex dilució 25°C)', 'sabor'),
+        ('Clor lliure (mg/L)', 'clor_lliure'),
+        ('Clor total (mg/L)', 'clor_total'),
+        ('E. coli (NPM/100mL)', 'recompte_escherichia_coli'),
+        ('Enterococs (NPM/100mL)', 'recompte_enterococ'),
+        ('Microorganismes aerobis 22°C (UFC/1mL)', 'recompte_microorganismes_aerobis_22c'),
+        ('Coliformes totals (NMP/100mL)', 'recompte_coliformes_totals'),
+        ('Àcid monocloroacètic (μg/L)', 'acid_monocloroacetic'),
+        ('Àcid dicloroacètic (μg/L)', 'acid_dicloroacetic'),
+        ('Àcid tricloroacètic (μg/L)', 'acid_tricloroacetic'),
+        ('Àcid monobromoacètic (μg/L)', 'acid_monobromoacetic'),
+        ('Àcid dibromoacètic (μg/L)', 'acid_dibromoacetic'),
+    ]
+    
+    writer = csv.writer(output)
+    
+    # Write headers
+    writer.writerow([header for header, _ in columns])
+    
+    # Write data rows
+    for sample in data:
+        row = []
+        for _, key in columns:
+            value = sample.get(key, '')
+            # Handle None values
+            if value is None:
+                value = ''
+            row.append(str(value))
+        writer.writerow(row)
+    
+    # Generate filename with current date
+    current_date = datetime.now().strftime('%Y-%m-%d')
+    filename = f'mostres_aigua_gualba_{current_date}.csv'
+    
+    return dict(content=output.getvalue(), filename=filename)
 
 # Callback for navigation buttons on home page
 @app.callback(
