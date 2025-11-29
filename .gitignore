@@ -1,4 +1,90 @@
-envs/
+# Environment files and secrets
 .env
+.env.local
+.env.production
+envs/
+
+# Python cache and bytecode
 *.pyc
+*.pyo
+*.pyd
 __pycache__/
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# Backup files
+backups/
+*.sql
+*.sql.gz
+*.backup
+
+# Docker override files (user-specific)
+docker-compose.override.yml
+docker-compose.local.yml
+
+# SSL certificates (if stored locally)
+ssl/
+certificates/
+*.pem
+*.key
+*.crt
+*.cert
+
+# Logs
+logs/
+*.log
+app.log
+
+# Testing and coverage
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.tox/
+.pytest_cache
+.hypothesis
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.sublime-*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Production monitoring (if added)
+monitoring/
+grafana/
+prometheus/
+
+# User uploads (if any)
+uploads/
+media/
+
+# Node modules (if frontend uses npm)
+node_modules/
+package-lock.json
+yarn.lock

@@ -96,13 +96,15 @@ aigualba/
 - Docker and Docker Compose
 - Git
 
-### 1. Clone the Repository
+### Development Setup
+
+#### 1. Clone the Repository
 ```bash
 git clone https://github.com/martimunicoy/aigualba.git
 cd aigualba
 ```
 
-### 2. Start the Complete System
+#### 2. Start the Complete System (Development)
 ```bash
 # Setup Keycloak authentication (first time only)
 ./setup-keycloak.sh
@@ -111,15 +113,51 @@ cd aigualba
 docker-compose -f docker-compose.dev.yml up --build
 ```
 
-### 3. Access the Application
+#### 3. Access the Application
 - **Public Dashboard**: http://localhost:8051
 - **Admin Panel**: http://localhost:8051/admin  
 - **Backend API**: http://localhost:8001
 - **Keycloak Admin**: http://localhost:8080
 
-### 4. Admin Access
+#### 4. Admin Access
 - **Username**: `admin`
 - **Password**: `admin123`
+
+### Production Deployment
+
+#### 1. Production Setup
+```bash
+# Clone the repository
+git clone https://github.com/martimunicoy/aigualba.git
+cd aigualba
+
+# Configure environment variables
+cp .env.example .env
+# Edit .env with your production values
+
+# Deploy with the automated script
+./deploy.sh
+```
+
+#### 2. Manual Production Deployment
+```bash
+# Start production services
+docker-compose up -d
+
+# Setup Keycloak (first time only)  
+./setup-keycloak.sh
+
+# Check service health
+./health-check.sh
+```
+
+#### 3. Production URLs
+- **Public Dashboard**: http://your-server (port 80)
+- **Admin Panel**: http://your-server/admin
+- **Backend API**: http://your-server/api
+- **Keycloak Admin**: http://your-server:8080
+
+For detailed production deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## 🔧 Development Setup
 
@@ -259,6 +297,43 @@ DASH_DEBUG=1
 - **Styling**: Update CSS in `frontend/assets/style.css`
 - **Charts**: Customize visualizations in `pages/visualize.py`
 - **Validation Rules**: Enhance data validation in `utils/helpers.py`
+
+## 🛠️ Production Management
+
+### Backup and Recovery
+```bash
+# Create backup
+./backup.sh
+
+# Restore database from backup  
+docker-compose exec -T db psql -U aigualba_user aigualba < backup-20241129.sql
+```
+
+### Monitoring
+```bash
+# Check system health
+./health-check.sh
+
+# View service logs
+docker-compose logs -f [service_name]
+
+# Monitor resource usage
+docker stats
+```
+
+### Updates
+```bash
+# Update to latest version
+git pull origin main
+docker-compose down
+docker-compose up --build -d
+```
+
+### Maintenance Scripts
+- **`deploy.sh`**: Automated production deployment
+- **`health-check.sh`**: System health monitoring
+- **`backup.sh`**: Database and application backup
+- **`setup-keycloak.sh`**: Keycloak authentication setup
 
 ## 📋 Troubleshooting
 

@@ -8,35 +8,105 @@ services:
       - frontend
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   db:
     image: postgres:15
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - ./db/init.prod.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    ports:
-      - "5432:5432"
+      - ./db/init.prod.sql:/docker-entrypoint-initdb.d/01-init-aigualba.sql:ro
+      - ./db/init-keycloak.sql:/docker-entrypoint-initdb.d/02-init-keycloak.sql:ro
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Only expose port in development - remove for production
+    # ports:
+    #   - "5432:5432"
 
   backend:
-    build: ./backend
+    build: 
+      context: ./backend
+      target: production
+    restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       DATABASE_URL: ${DATABASE_URL}
-    ports:
-      - "8000:8000"
+    # Only expose port if needed for debugging - remove for production
+    # ports:
+    #   - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   frontend:
-    build: ./frontend
+    build: 
+      context: ./frontend
+      target: production
+    restart: unless-stopped
     depends_on:
       - backend
     environment:
-      BACKEND_URL: ${BACKEND_URL}
+      BACKEND_URL: http://backend:8000
+      DASH_DEBUG: 0
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: aigualba
+      KEYCLOAK_CLIENT_ID: aigualba-frontend
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_REDIRECT_URI: http://localhost/admin
+    # Only expose port if needed for debugging - remove for production
+    # ports:
+    #   - "8050:8050"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8050"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    restart: unless-stopped
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin123}
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://db:5432/keycloak
+      - KC_DB_USERNAME=${KC_DB_USERNAME}
+      - KC_DB_PASSWORD=${KC_DB_PASSWORD}
+      - KC_HOSTNAME_STRICT=false
+      - KC_HOSTNAME_STRICT_HTTPS=false
+      - KC_HTTP_ENABLED=true
+      - KC_PROXY=edge
     ports:
-      - "8050:8050"
+      - "8080:8080"
+    command: start --import-realm --optimized
+    depends_on:
+      db:
+        condition: service_healthy
     volumes:
-      - ./frontend:/app/frontend
+      - keycloak_data:/opt/keycloak/data
+      - ./keycloak/realm-import.json:/opt/keycloak/data/import/realm-import.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  postgres_data:
+  keycloak_data:

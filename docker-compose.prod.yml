@@ -1,0 +1,61 @@
+# Docker Compose Override for Production
+# This file provides production-specific overrides
+
+services:
+  nginx:
+    # Production nginx with SSL support
+    environment:
+      - NGINX_PROD=1
+    # Uncomment and configure for SSL
+    # volumes:
+    #   - /etc/letsencrypt:/etc/letsencrypt:ro
+    #   - ./nginx/nginx-ssl.conf:/etc/nginx/nginx.conf:ro
+
+  db:
+    # Production database optimizations
+    environment:
+      - POSTGRES_SHARED_BUFFERS=256MB
+      - POSTGRES_EFFECTIVE_CACHE_SIZE=1GB
+      - POSTGRES_MAINTENANCE_WORK_MEM=64MB
+      - POSTGRES_CHECKPOINT_COMPLETION_TARGET=0.7
+      - POSTGRES_WAL_BUFFERS=16MB
+      - POSTGRES_DEFAULT_STATISTICS_TARGET=100
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.7
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+    # Production database should not expose ports
+    ports: []
+
+  backend:
+    # Production backend configuration
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+    # Production backend should not expose ports
+    ports: []
+
+  frontend:
+    # Production frontend configuration  
+    environment:
+      - DASH_DEBUG=0
+      - ENVIRONMENT=production
+    # Production frontend should not expose ports
+    ports: []
+
+  keycloak:
+    # Production Keycloak optimizations
+    environment:
+      - KC_CACHE=ispn
+      - KC_CACHE_STACK=kubernetes
+      - KC_METRICS_ENABLED=true
+      - KC_HEALTH_ENABLED=true
+    # Keycloak only accessible through nginx in production
+    ports:
+      - "8080:8080"  # Remove this line if using nginx proxy for Keycloak too
