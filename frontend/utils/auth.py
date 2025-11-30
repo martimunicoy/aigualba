@@ -141,47 +141,113 @@ class KeycloakAuth:
             logger.error("Error validating token: %s", str(e))
             return False
     
-    def get_admin_token(self, username, password):
-        """Get admin token using direct grant for development"""
-        # Use dedicated admin client if configured, otherwise fall back to frontend client.
-        client_id = self.admin_client_id or self.client_id
-        client_secret = self.admin_client_secret if self.admin_client_id else self.client_secret
+    def get_admin_token(self, username=None, password=None):
+        """Get admin token using direct grant for development
 
-        data = {
-            "grant_type": "password",
-            "client_id": client_id,
-            **({"client_secret": client_secret} if client_secret else {}),
-            "username": username,
-            "password": password,
-            "scope": "openid profile email roles"
-        }
+        Behavior:
+        - If KEYCLOAK_ADMIN_CLIENT_ID + KEYCLOAK_ADMIN_CLIENT_SECRET provided:
+            * If username/password provided: use grant_type=password with confidential client.
+            * Else: use grant_type=client_credentials (service account).
+        - If KEYCLOAK_ADMIN_CLIENT_ID provided but no secret:
+            * Require KEYCLOAK_ADMIN_PUBLIC_CLIENT=true and username/password; use password grant (requires Direct Access Grants in Keycloak).
+        - If no admin client configured:
+            * Do not attempt password grant with the public frontend client — return None and log instructions.
+        """
+        # Determine which client to use for admin operations
+        admin_public_flag = os.getenv("KEYCLOAK_ADMIN_PUBLIC_CLIENT", "false").lower() in ("1", "true", "yes")
 
-        if (self.admin_client_id and not self.admin_client_secret):
-            logger.warning("Admin client %s configured without secret; ensure it is a public client with Direct Access Grants enabled", self.admin_client_id)
+        if self.admin_client_id and self.admin_client_secret:
+            # Confidential admin client available
+            client_id = self.admin_client_id
+            client_secret = self.admin_client_secret
+            if username and password:
+                data = {
+                    "grant_type": "password",
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "username": username,
+                    "password": password,
+                    "scope": "openid profile email roles"
+                }
+            else:
+                # Prefer client_credentials for service-account style tokens
+                data = {
+                    "grant_type": "client_credentials",
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "scope": "openid profile email roles"
+                }
+        elif self.admin_client_id and not self.admin_client_secret:
+            # Admin client exists but is public — only allow if explicitly configured
+            if not admin_public_flag:
+                logger.error(
+                    "Admin client %s is public but KEYCLOAK_ADMIN_PUBLIC_CLIENT not set. "
+                    "Set KEYCLOAK_ADMIN_PUBLIC_CLIENT=true to allow password grant with a public admin client, "
+                    "or configure a confidential admin client with KEYCLOAK_ADMIN_CLIENT_SECRET.",
+                    self.admin_client_id
+                )
+                return None
+            if not username or not password:
+                logger.error(
+                    "Admin public client %s requires username and password for password grant. "
+                    "Provide credentials or configure a confidential client.",
+                    self.admin_client_id
+                )
+                return None
+            client_id = self.admin_client_id
+            data = {
+                "grant_type": "password",
+                "client_id": client_id,
+                "username": username,
+                "password": password,
+                "scope": "openid profile email roles"
+            }
+            logger.warning("Using public admin client %s with password grant; ensure Direct Access Grants are enabled in Keycloak", client_id)
+        else:
+            # No admin client configured — do not attempt password grant with frontend public client
+            logger.error(
+                "No KEYCLOAK_ADMIN_CLIENT_ID configured. Refusing to perform password grant using the public frontend client '%s'. "
+                "Configure a confidential admin client (KEYCLOAK_ADMIN_CLIENT_ID/KEYCLOAK_ADMIN_CLIENT_SECRET) "
+                "or enable an explicit admin public client and set KEYCLOAK_ADMIN_PUBLIC_CLIENT=true.",
+                self.client_id
+            )
+            return None
 
+        # Token endpoint URLs (public + internal fallback)
         public_token_url = f"{self.keycloak_url}/realms/{self.realm}/protocol/openid-connect/token"
         internal_keycloak_url = self.keycloak_url.replace('localhost', 'keycloak')
         internal_token_url = f"{internal_keycloak_url}/realms/{self.realm}/protocol/openid-connect/token"
 
+        # Try public URL first, then internal
         try:
-            logger.debug("Requesting admin token (public) %s for user=%s client_id=%s", public_token_url, username, client_id)
+            logger.debug("Requesting admin token (public) %s for client_id=%s", public_token_url, client_id)
             response = requests.post(public_token_url, data=data, timeout=5)
-            logger.debug("Response (public) status=%s body=%s", response.status_code, response.text)
+            logger.debug("Response (public) status=%s body=%s", getattr(response, "status_code", None), getattr(response, "text", None))
             response.raise_for_status()
-            logger.info("Admin token obtained (public) for user=%s", username)
+            logger.info("Admin token obtained (public) for client_id=%s", client_id)
             return response.json()
         except requests.exceptions.RequestException as e_public:
-            # include response body if available for diagnosis (invalid_client_credentials often returns 401 with body)
-            logger.warning("Public admin token request failed: %s", str(e_public))
+            # If we have a response object, include its body for diagnostics
+            body = ""
             try:
-                logger.debug("Requesting admin token (internal) %s for user=%s client_id=%s", internal_token_url, username, client_id)
+                body = getattr(e_public.response, "text", "") if hasattr(e_public, "response") else ""
+            except Exception:
+                body = ""
+            logger.warning("Public admin token request failed: %s; response_body=%s", str(e_public), body)
+            try:
+                logger.debug("Requesting admin token (internal) %s for client_id=%s", internal_token_url, client_id)
                 response = requests.post(internal_token_url, data=data, timeout=5)
-                logger.debug("Response (internal) status=%s body=%s", response.status_code, response.text)
+                logger.debug("Response (internal) status=%s body=%s", getattr(response, "status_code", None), getattr(response, "text", None))
                 response.raise_for_status()
-                logger.info("Admin token obtained (internal) for user=%s", username)
+                logger.info("Admin token obtained (internal) for client_id=%s", client_id)
                 return response.json()
             except requests.exceptions.RequestException as e_internal:
-                logger.error("Internal admin token request failed: %s", str(e_internal))
+                body_int = ""
+                try:
+                    body_int = getattr(e_internal.response, "text", "") if hasattr(e_internal, "response") else ""
+                except Exception:
+                    body_int = ""
+                logger.error("Internal admin token request failed: %s; response_body=%s", str(e_internal), body_int)
                 return None
     
     def logout_url(self, redirect_uri=None):
