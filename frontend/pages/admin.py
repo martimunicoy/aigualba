@@ -78,13 +78,13 @@ def create_layout():
                     ], style={'marginBottom': '1.5rem'}),
                     
                     html.Div([
-                        html.A(
+                        html.Button(
                             [
                                 html.I(className="fas fa-sign-in-alt", style={'marginRight': '8px'}),
                                 "Iniciar sessió"
                             ],
-                            id='login-link',
-                            href=keycloak_auth.get_auth_url(),
+                            id='login-btn',
+                            n_clicks=0,
                             className='btn-standard',
                             style={
                                 'display': 'inline-block',
