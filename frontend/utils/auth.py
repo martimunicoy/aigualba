@@ -23,9 +23,22 @@ class KeycloakAuth:
         self.keycloak_url = os.getenv("KEYCLOAK_URL", "http://localhost:8080")
         self.realm = os.getenv("KEYCLOAK_REALM", "aigualba")
         self.client_id = os.getenv("KEYCLOAK_CLIENT_ID", "aigualba-frontend")
-        self.client_secret = os.getenv("KEYCLOAK_CLIENT_SECRET", "aigualba-frontend-secret-123")
+        # Treat empty/absent secret as "no secret" (public client)
+        _cs = os.getenv("KEYCLOAK_CLIENT_SECRET", "")
+        self.client_secret = _cs if _cs.strip() else None
+        # Flag to indicate frontend is a public client (default true for SPA)
+        self.public_client = os.getenv("KEYCLOAK_PUBLIC_CLIENT", "true").lower() in ("1", "true", "yes")
+        # Optional separate confidential client to perform admin token requests
+        self.admin_client_id = os.getenv("KEYCLOAK_ADMIN_CLIENT_ID")
+        _admin_cs = os.getenv("KEYCLOAK_ADMIN_CLIENT_SECRET", "")
+        self.admin_client_secret = _admin_cs if _admin_cs.strip() else None
         self.redirect_uri = os.getenv("KEYCLOAK_REDIRECT_URI", "http://localhost:8050/admin/callback")
         
+        # If KEYCLOAK_PUBLIC_CLIENT is true and a secret was provided, ignore it to avoid sending invalid credentials.
+        if self.public_client and self.client_secret:
+            logger.info("KEYCLOAK_PUBLIC_CLIENT=true, ignoring KEYCLOAK_CLIENT_SECRET for public frontend client")
+            self.client_secret = None
+
     def get_auth_url(self, state=None):
         """Generate Keycloak authorization URL"""
         auth_url = f"{self.keycloak_url}/realms/{self.realm}/protocol/openid-connect/auth"
@@ -46,7 +59,8 @@ class KeycloakAuth:
         data = {
             "grant_type": "authorization_code",
             "client_id": self.client_id,
-            "client_secret": self.client_secret,
+            # include client_secret only when configured (confidential client)
+            **({"client_secret": self.client_secret} if self.client_secret else {}),
             "code": code,
             "redirect_uri": self.redirect_uri
         }
@@ -129,30 +143,38 @@ class KeycloakAuth:
     
     def get_admin_token(self, username, password):
         """Get admin token using direct grant for development"""
+        # Use dedicated admin client if configured, otherwise fall back to frontend client.
+        client_id = self.admin_client_id or self.client_id
+        client_secret = self.admin_client_secret if self.admin_client_id else self.client_secret
+
         data = {
             "grant_type": "password",
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
+            "client_id": client_id,
+            **({"client_secret": client_secret} if client_secret else {}),
             "username": username,
             "password": password,
             "scope": "openid profile email roles"
         }
+
+        if (self.admin_client_id and not self.admin_client_secret):
+            logger.warning("Admin client %s configured without secret; ensure it is a public client with Direct Access Grants enabled", self.admin_client_id)
 
         public_token_url = f"{self.keycloak_url}/realms/{self.realm}/protocol/openid-connect/token"
         internal_keycloak_url = self.keycloak_url.replace('localhost', 'keycloak')
         internal_token_url = f"{internal_keycloak_url}/realms/{self.realm}/protocol/openid-connect/token"
 
         try:
-            logger.debug("Requesting admin token (public) %s for user=%s client_id=%s", public_token_url, username, self.client_id)
+            logger.debug("Requesting admin token (public) %s for user=%s client_id=%s", public_token_url, username, client_id)
             response = requests.post(public_token_url, data=data, timeout=5)
             logger.debug("Response (public) status=%s body=%s", response.status_code, response.text)
             response.raise_for_status()
             logger.info("Admin token obtained (public) for user=%s", username)
             return response.json()
         except requests.exceptions.RequestException as e_public:
+            # include response body if available for diagnosis (invalid_client_credentials often returns 401 with body)
             logger.warning("Public admin token request failed: %s", str(e_public))
             try:
-                logger.debug("Requesting admin token (internal) %s for user=%s client_id=%s", internal_token_url, username, self.client_id)
+                logger.debug("Requesting admin token (internal) %s for user=%s client_id=%s", internal_token_url, username, client_id)
                 response = requests.post(internal_token_url, data=data, timeout=5)
                 logger.debug("Response (internal) status=%s body=%s", response.status_code, response.text)
                 response.raise_for_status()
