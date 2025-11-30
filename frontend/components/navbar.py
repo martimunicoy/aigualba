@@ -6,7 +6,7 @@ def create_navbar():
         html.Div([
             html.Div([
                 html.A([
-                    html.Img(src='/assets/images/logo2.png', 
+                    html.Img(src='/assets/images/logo3.png', 
                              alt='AiGua-lba Logo',
                              className='navbar-logo'),
                     html.Span([

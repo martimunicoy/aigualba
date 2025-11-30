@@ -43,7 +43,7 @@ def create_home_page():
                 
                 # Logo
                 html.Div([
-                    html.Img(src='/assets/images/logo2.png', 
+                    html.Img(src='/assets/images/logo3.png', 
                              alt='AiGua-lba Logo',
                              style={
                                  'height': '80px',
