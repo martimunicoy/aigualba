@@ -8,6 +8,16 @@ import json
 import os
 from urllib.parse import urlparse, parse_qs
 from utils.auth import keycloak_auth
+import logging
+
+# Logger for admin callback flow
+logger = logging.getLogger("aigualba.admin_callbacks")
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s %(levelname)s [%(name)s] %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(os.getenv('AIGUALBA_LOG_LEVEL', 'INFO'))
 from utils.admin import admin_sample_manager
 from components.admin_dashboard import create_admin_tabs_content, create_sample_edit_modal
 from utils.helpers import get_backend_url
@@ -89,7 +99,9 @@ def handle_admin_auth(pathname, search, login_clicks, logout_clicks, username_su
             if token:
                 try:
                     # Validate existing token
-                    if keycloak_auth.validate_token(token):
+                    valid = keycloak_auth.validate_token(token)
+                    logger.debug("Existing token validation result: %s", valid)
+                    if valid:
                         # Token is still valid
                         return (
                             {'display': 'none'},  # hide login form
@@ -113,6 +125,7 @@ def handle_admin_auth(pathname, search, login_clicks, logout_clicks, username_su
                         )
                 except Exception as e:
                     # Token validation error, clear session
+                    logger.exception("Token validation raised exception: %s", str(e))
                     return (
                         {'display': 'block'},  # show login form
                         {'display': 'none'},   # hide dashboard
@@ -124,6 +137,7 @@ def handle_admin_auth(pathname, search, login_clicks, logout_clicks, username_su
                     )
         
         # Default: show login form
+        logger.debug("No trigger: defaulting to show login form")
         return (
             {'display': 'block'},  # show login form
             {'display': 'none'},   # hide dashboard
@@ -138,6 +152,7 @@ def handle_admin_auth(pathname, search, login_clicks, logout_clicks, username_su
     
     # Handle logout
     if trigger_id == 'logout-btn' and logout_clicks:
+        logger.info("Logout requested by user")
         return (
             {'display': 'block'},  # show login form
             {'display': 'none'},   # hide dashboard
@@ -154,6 +169,7 @@ def handle_admin_auth(pathname, search, login_clicks, logout_clicks, username_su
        (trigger_id == 'login-password' and password_submit):
         # Validate form inputs
         if not username or not password:
+            logger.warning("Login attempt with missing credentials: username=%s", bool(username))
             return (
                 {'display': 'block'},  # keep showing login form
                 {'display': 'none'},   # hide dashboard
@@ -167,9 +183,12 @@ def handle_admin_auth(pathname, search, login_clicks, logout_clicks, username_su
         try:
             # Try to get token using provided credentials
             admin_token = keycloak_auth.get_admin_token(username, password)
+            logger.debug("Admin token response: %s", bool(admin_token))
             if admin_token:
                 user_info = keycloak_auth.get_user_info(admin_token['access_token'])
+                logger.debug("User info obtained: %s", bool(user_info))
                 if user_info and keycloak_auth.has_admin_role(user_info):
+                    logger.info("User %s authenticated as admin", user_info.get('username') or username)
                     return (
                         {'display': 'none'},  # hide login form
                         {'display': 'block'},  # show dashboard
@@ -180,6 +199,7 @@ def handle_admin_auth(pathname, search, login_clicks, logout_clicks, username_su
                         {'display': 'none'}
                     )
                 else:
+                    logger.warning("User %s does not have admin role", user_info.get('username') if user_info else username)
                     return (
                         {'display': 'block'},  # keep showing login form
                         {'display': 'none'},   # hide dashboard
@@ -190,6 +210,7 @@ def handle_admin_auth(pathname, search, login_clicks, logout_clicks, username_su
                         {'display': 'block'}
                     )
             else:
+                logger.warning("Admin token request failed for user=%s", username)
                 return (
                     {'display': 'block'},  # keep showing login form
                     {'display': 'none'},   # hide dashboard
@@ -200,6 +221,7 @@ def handle_admin_auth(pathname, search, login_clicks, logout_clicks, username_su
                     {'display': 'block'}
                 )
         except Exception as e:
+            logger.exception("Exception during admin login for user=%s: %s", username, str(e))
             return (
                 {'display': 'block'},  # keep showing login form
                 {'display': 'none'},   # hide dashboard
@@ -220,12 +242,13 @@ def handle_admin_auth(pathname, search, login_clicks, logout_clicks, username_su
             try:
                 # Exchange code for token with actual Keycloak
                 token_data = keycloak_auth.exchange_code_for_token(code)
-                
+                logger.debug("Token exchange result: %s", bool(token_data))
                 if token_data and token_data.get('access_token'):
                     # Validate token and get user info
                     user_info = keycloak_auth.get_user_info(token_data['access_token'])
-                    
+                    logger.debug("User info after code exchange: %s", bool(user_info))
                     if user_info and keycloak_auth.has_admin_role(user_info):
+                        logger.info("Successful code exchange and admin role verified for user=%s", user_info.get('username'))
                         return (
                             {'display': 'none'},  # hide login form
                             {'display': 'block'},  # show dashboard
@@ -236,6 +259,7 @@ def handle_admin_auth(pathname, search, login_clicks, logout_clicks, username_su
                             {'display': 'none'}
                         )
                     else:
+                        logger.warning("User from code exchange lacks admin role or user info missing")
                         # User doesn't have admin role
                         return (
                             {'display': 'block'},  # show login form
@@ -247,6 +271,7 @@ def handle_admin_auth(pathname, search, login_clicks, logout_clicks, username_su
                             {'display': 'block'}
                         )
                 else:
+                    logger.warning("Token exchange failed or returned no access_token for code=%s", code)
                     # Token exchange failed
                     return (
                         {'display': 'block'},  # show login form
@@ -258,6 +283,7 @@ def handle_admin_auth(pathname, search, login_clicks, logout_clicks, username_su
                         {'display': 'block'}
                     )
             except Exception as e:
+                logger.exception("Exception during code exchange handling: %s", str(e))
                 return (
                     {'display': 'block'},  # show login form
                     {'display': 'none'},   # hide dashboard
@@ -371,7 +397,7 @@ def load_admin_data(active_tab, auth_state):
         if response.status_code == 200:
             samples_data = response.json()
         else:
-            print(f"Error fetching admin samples: {response.status_code}")
+            logger.error("Error fetching admin samples: HTTP %s - %s", response.status_code, response.text)
             
         # Fetch statistics including visits from admin statistics endpoint
         token = auth_state.get('token')
@@ -380,10 +406,10 @@ def load_admin_data(active_tab, auth_state):
             stats_response = requests.get(f"{backend_url}/api/admin/statistics", headers=headers)
             if stats_response.status_code == 200:
                 stats_data = stats_response.json()
-                print(f"DEBUG: Got stats data from backend: {stats_data}")
-                print(f"DEBUG: Visits data in stats: {stats_data.get('visits_last_7_days', 'NOT FOUND')}")
+                logger.debug("Got stats data from backend: %s", stats_data)
+                logger.debug("Visits data in stats: %s", stats_data.get('visits_last_7_days', 'NOT FOUND'))
             else:
-                print(f"Error fetching admin statistics: {stats_response.status_code}")
+                logger.error("Error fetching admin statistics: HTTP %s - %s", stats_response.status_code, stats_response.text)
                 # Fallback to calculate basic statistics from samples data
                 total_samples = len(samples_data)
                 validated_samples = sum(1 for sample in samples_data if sample.get('validated', False))
@@ -403,7 +429,7 @@ def load_admin_data(active_tab, auth_state):
                 }
         
     except Exception as e:
-        print(f"Error loading admin data: {e}")
+        logger.exception("Error loading admin data: %s", str(e))
         # Fallback to empty data
         samples_data = []
         stats_data = {
@@ -447,7 +473,7 @@ def load_admin_data(active_tab, auth_state):
                 logs_data = ["Authentication required to view logs"]
                 
         except Exception as e:
-            print(f"Error fetching logs: {e}")
+            logger.exception("Error fetching logs: %s", str(e))
             logs_data = [f'Error fetching logs: {str(e)}']
     
     return samples_data, stats_data, logs_data

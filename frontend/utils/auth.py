@@ -1,13 +1,22 @@
-"""
-Keycloak authentication utilities for Aigualba
-"""
+"""Keycloak authentication utilities for Aigualba with diagnostics logging"""
 import os
 import jwt
 import requests
+import logging
 from datetime import datetime, timedelta
 from functools import wraps
 from dash import callback_context
 import json
+
+# Logger for Keycloak operations
+logger = logging.getLogger("aigualba.keycloak")
+if not logger.handlers:
+    # Avoid adding multiple handlers if module reloaded; let application configure handlers in production
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s %(levelname)s [%(name)s] %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(os.getenv('AIGUALBA_LOG_LEVEL', 'INFO'))
 
 class KeycloakAuth:
     def __init__(self):
@@ -49,19 +58,27 @@ class KeycloakAuth:
         internal_keycloak_url = self.keycloak_url.replace('localhost', 'keycloak')
         internal_token_url = f"{internal_keycloak_url}/realms/{self.realm}/protocol/openid-connect/token"
 
+        # Try public URL first, then fallback to internal URL used inside docker-compose
         try:
-            # Try public URL first
+            logger.debug("Attempting token exchange (public) %s for client_id=%s", public_token_url, self.client_id)
             response = requests.post(public_token_url, data=data, timeout=5)
+            logger.debug("Response (public) status=%s body=%s", response.status_code, response.text)
             response.raise_for_status()
-            return response.json()
-        except Exception:
+            token_json = response.json()
+            logger.info("Token exchange (public) successful for client_id=%s", self.client_id)
+            return token_json
+        except requests.exceptions.RequestException as e_public:
+            logger.warning("Public token exchange failed: %s", str(e_public))
             try:
-                # Fallback to internal URL (useful when running inside docker-compose)
+                logger.debug("Attempting token exchange (internal) %s for client_id=%s", internal_token_url, self.client_id)
                 response = requests.post(internal_token_url, data=data, timeout=5)
+                logger.debug("Response (internal) status=%s body=%s", response.status_code, response.text)
                 response.raise_for_status()
-                return response.json()
-            except Exception as e:
-                print(f"Error exchanging code for token: {e}")
+                token_json = response.json()
+                logger.info("Token exchange (internal) successful for client_id=%s", self.client_id)
+                return token_json
+            except requests.exceptions.RequestException as e_internal:
+                logger.error("Internal token exchange failed: %s", str(e_internal))
                 return None
     
     def get_user_info(self, access_token):
@@ -69,7 +86,7 @@ class KeycloakAuth:
         try:
             # Decode token without verification for development
             decoded_token = jwt.decode(access_token, options={"verify_signature": False})
-            
+            logger.debug("Decoded access token keys: %s", list(decoded_token.keys()))
             user_info = {
                 "username": decoded_token.get("preferred_username"),
                 "email": decoded_token.get("email"),
@@ -77,10 +94,10 @@ class KeycloakAuth:
                 "last_name": decoded_token.get("family_name"),
                 "roles": decoded_token.get("realm_access", {}).get("roles", [])
             }
-            
+            logger.info("Extracted user info for username=%s roles=%s", user_info.get('username'), user_info.get('roles'))
             return user_info
         except Exception as e:
-            print(f"Error decoding token: {e}")
+            logger.error("Error decoding token: %s", str(e))
             return None
     
     def has_admin_role(self, user_info):
@@ -97,11 +114,17 @@ class KeycloakAuth:
             # For development, we'll just check if token exists and is not expired
             decoded_token = jwt.decode(access_token, options={"verify_signature": False})
             exp = decoded_token.get("exp")
-            if exp and datetime.fromtimestamp(exp) > datetime.now():
-                return True
+            if exp:
+                expiry = datetime.fromtimestamp(exp)
+                logger.debug("Token expires at %s (now=%s)", expiry.isoformat(), datetime.now().isoformat())
+                if expiry > datetime.now():
+                    return True
+                logger.info("Token expired at %s", expiry.isoformat())
+                return False
+            logger.warning("Token has no exp claim")
             return False
         except Exception as e:
-            print(f"Error validating token: {e}")
+            logger.error("Error validating token: %s", str(e))
             return False
     
     def get_admin_token(self, username, password):
@@ -120,16 +143,23 @@ class KeycloakAuth:
         internal_token_url = f"{internal_keycloak_url}/realms/{self.realm}/protocol/openid-connect/token"
 
         try:
+            logger.debug("Requesting admin token (public) %s for user=%s client_id=%s", public_token_url, username, self.client_id)
             response = requests.post(public_token_url, data=data, timeout=5)
+            logger.debug("Response (public) status=%s body=%s", response.status_code, response.text)
             response.raise_for_status()
+            logger.info("Admin token obtained (public) for user=%s", username)
             return response.json()
-        except Exception:
+        except requests.exceptions.RequestException as e_public:
+            logger.warning("Public admin token request failed: %s", str(e_public))
             try:
+                logger.debug("Requesting admin token (internal) %s for user=%s client_id=%s", internal_token_url, username, self.client_id)
                 response = requests.post(internal_token_url, data=data, timeout=5)
+                logger.debug("Response (internal) status=%s body=%s", response.status_code, response.text)
                 response.raise_for_status()
+                logger.info("Admin token obtained (internal) for user=%s", username)
                 return response.json()
-            except Exception as e:
-                print(f"Error getting admin token: {e}")
+            except requests.exceptions.RequestException as e_internal:
+                logger.error("Internal admin token request failed: %s", str(e_internal))
                 return None
     
     def logout_url(self, redirect_uri=None):
