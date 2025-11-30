@@ -654,10 +654,8 @@ def manual_refresh_data(refresh_clicks, auth_state):
     stats_data = {}
     
     try:
-        headers = {'Authorization': f'Bearer admin-{auth_state.get('token')}' if auth_state and auth_state.get('token') else ''}
-        # Ensure headers is a dict even if token absent
-        if isinstance(headers, str):
-            headers = {}
+        token = auth_state.get('token') if auth_state else None
+        headers = {'Authorization': f'Bearer admin-{token}'} if token else {}
         response = requests.get(f"{backend_url}/api/mostres/admin/all", headers=headers)
         if response.status_code == 200:
             samples_data = response.json()
@@ -706,6 +704,7 @@ def auto_refresh_after_operations(validate_clicks, unvalidate_clicks, selected_r
     stats_data = {}
     
     try:
+        token = auth_state.get('token') if auth_state else None
         headers = {'Authorization': f'Bearer admin-{token}'} if token else {}
         response = requests.get(f"{backend_url}/api/mostres/admin/all", headers=headers)
         if response.status_code == 200:
