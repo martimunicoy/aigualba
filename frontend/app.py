@@ -144,7 +144,45 @@ def create_sample_detail_page(sample_id, referrer="/browse"):
     ], style={'backgroundColor': '#f8f9fa', 'minHeight': '80vh'})
 
 # Initialize Dash app
-app = dash.Dash(__name__, suppress_callback_exceptions=True, assets_folder='assets')
+
+# Custom HTML index string to include all favicon and manifest links
+app = dash.Dash(
+    __name__,
+    suppress_callback_exceptions=True,
+    assets_folder='assets'
+)
+
+# Set custom index string for favicons and manifest
+app.index_string = '''
+<!DOCTYPE html>
+<html lang="ca">
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
+        <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
+        <link rel="icon" type="image/x-icon" href="/assets/favicon/favicon.ico">
+        <link rel="icon" type="image/x-icon" sizes="16x16" href="/assets/favicon/favicon_16.ico">
+        <link rel="icon" type="image/x-icon" sizes="24x24" href="/assets/favicon/favicon_24.ico">
+        <link rel="icon" type="image/x-icon" sizes="32x32" href="/assets/favicon/favicon_32.ico">
+        <link rel="icon" type="image/x-icon" sizes="48x48" href="/assets/favicon/favicon_48.ico">
+        <link rel="icon" type="image/x-icon" sizes="64x64" href="/assets/favicon/favicon_64.ico">
+        <link rel="icon" type="image/x-icon" sizes="96x96" href="/assets/favicon/favicon_96.ico">
+        <link rel="icon" type="image/x-icon" sizes="128x128" href="/assets/favicon/favicon_128.ico">
+        <link rel="icon" type="image/x-icon" sizes="256x256" href="/assets/favicon/favicon_256.ico">
+        <link rel="manifest" href="/assets/favicon/site.webmanifest">
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+'''
 
 # Main app layout with URL routing
 app.layout = html.Div([
