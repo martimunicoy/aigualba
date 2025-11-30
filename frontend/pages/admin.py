@@ -78,14 +78,16 @@ def create_layout():
                     ], style={'marginBottom': '1.5rem'}),
                     
                     html.Div([
-                        html.Button(
+                        html.A(
                             [
                                 html.I(className="fas fa-sign-in-alt", style={'marginRight': '8px'}),
                                 "Iniciar sessió"
                             ],
-                            id='login-btn',
+                            id='login-link',
+                            href=keycloak_auth.get_auth_url(),
                             className='btn-standard',
                             style={
+                                'display': 'inline-block',
                                 'backgroundColor': '#e74c3c',
                                 'color': 'white',
                                 'border': 'none',
@@ -95,7 +97,10 @@ def create_layout():
                                 'cursor': 'pointer',
                                 'boxShadow': '0 4px 8px rgba(0,0,0,0.3)',
                                 'transition': 'all 0.2s ease',
-                                'width': '100%'
+                                'width': '100%',
+                                'textDecoration': 'none',
+                                'textAlign': 'center',
+                                'lineHeight': '1.2'
                             }
                         )
                     ], style={'textAlign': 'center'})

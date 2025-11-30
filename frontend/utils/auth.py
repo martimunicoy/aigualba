@@ -34,10 +34,6 @@ class KeycloakAuth:
     
     def exchange_code_for_token(self, code):
         """Exchange authorization code for access token"""
-        # Use internal Docker network URL for server-side requests
-        internal_keycloak_url = self.keycloak_url.replace('localhost', 'keycloak')
-        token_url = f"{internal_keycloak_url}/realms/{self.realm}/protocol/openid-connect/token"
-        
         data = {
             "grant_type": "authorization_code",
             "client_id": self.client_id,
@@ -45,14 +41,28 @@ class KeycloakAuth:
             "code": code,
             "redirect_uri": self.redirect_uri
         }
-        
+
+        # Prefer the configured KEYCLOAK_URL (works for local dev and proxied production).
+        # If that fails (e.g. frontend running inside docker needs internal hostname),
+        # fall back to the container-internal hostname replacement.
+        public_token_url = f"{self.keycloak_url}/realms/{self.realm}/protocol/openid-connect/token"
+        internal_keycloak_url = self.keycloak_url.replace('localhost', 'keycloak')
+        internal_token_url = f"{internal_keycloak_url}/realms/{self.realm}/protocol/openid-connect/token"
+
         try:
-            response = requests.post(token_url, data=data)
+            # Try public URL first
+            response = requests.post(public_token_url, data=data, timeout=5)
             response.raise_for_status()
             return response.json()
-        except Exception as e:
-            print(f"Error exchanging code for token: {e}")
-            return None
+        except Exception:
+            try:
+                # Fallback to internal URL (useful when running inside docker-compose)
+                response = requests.post(internal_token_url, data=data, timeout=5)
+                response.raise_for_status()
+                return response.json()
+            except Exception as e:
+                print(f"Error exchanging code for token: {e}")
+                return None
     
     def get_user_info(self, access_token):
         """Get user information from access token"""
@@ -96,10 +106,6 @@ class KeycloakAuth:
     
     def get_admin_token(self, username, password):
         """Get admin token using direct grant for development"""
-        # Use internal Docker network URL for server-side requests
-        internal_keycloak_url = self.keycloak_url.replace('localhost', 'keycloak')
-        token_url = f"{internal_keycloak_url}/realms/{self.realm}/protocol/openid-connect/token"
-        
         data = {
             "grant_type": "password",
             "client_id": self.client_id,
@@ -108,14 +114,23 @@ class KeycloakAuth:
             "password": password,
             "scope": "openid profile email roles"
         }
-        
+
+        public_token_url = f"{self.keycloak_url}/realms/{self.realm}/protocol/openid-connect/token"
+        internal_keycloak_url = self.keycloak_url.replace('localhost', 'keycloak')
+        internal_token_url = f"{internal_keycloak_url}/realms/{self.realm}/protocol/openid-connect/token"
+
         try:
-            response = requests.post(token_url, data=data)
+            response = requests.post(public_token_url, data=data, timeout=5)
             response.raise_for_status()
             return response.json()
-        except Exception as e:
-            print(f"Error getting admin token: {e}")
-            return None
+        except Exception:
+            try:
+                response = requests.post(internal_token_url, data=data, timeout=5)
+                response.raise_for_status()
+                return response.json()
+            except Exception as e:
+                print(f"Error getting admin token: {e}")
+                return None
     
     def logout_url(self, redirect_uri=None):
         """Generate logout URL"""
