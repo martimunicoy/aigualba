@@ -5,6 +5,7 @@
 CREATE DATABASE keycloak;
 
 -- Create Keycloak user (if not exists)
+-- Note: Password will be set via environment variable in init-env.sh
 DO
 $do$
 BEGIN
@@ -12,7 +13,8 @@ BEGIN
       SELECT FROM pg_catalog.pg_roles
       WHERE  rolname = 'keycloak_user') THEN
 
-      CREATE ROLE keycloak_user LOGIN PASSWORD 'keycloak_pass';
+      -- Password will be updated by init-env.sh script
+      CREATE ROLE keycloak_user LOGIN PASSWORD 'temp_password';
    END IF;
 END
 $do$;

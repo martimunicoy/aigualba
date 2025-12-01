@@ -23,21 +23,14 @@ class KeycloakAuth:
         self.keycloak_url = os.getenv("KEYCLOAK_URL", "http://localhost:8080")
         self.realm = os.getenv("KEYCLOAK_REALM", "aigualba")
         self.client_id = os.getenv("KEYCLOAK_CLIENT_ID", "aigualba-frontend")
-        # Treat empty/absent secret as "no secret" (public client)
-        _cs = os.getenv("KEYCLOAK_CLIENT_SECRET", "")
-        self.client_secret = _cs if _cs.strip() else None
-        # Flag to indicate frontend is a public client (default true for SPA)
-        self.public_client = os.getenv("KEYCLOAK_PUBLIC_CLIENT", "true").lower() in ("1", "true", "yes")
-        # Optional separate confidential client to perform admin token requests
-        self.admin_client_id = os.getenv("KEYCLOAK_ADMIN_CLIENT_ID")
-        _admin_cs = os.getenv("KEYCLOAK_ADMIN_CLIENT_SECRET", "")
-        self.admin_client_secret = _admin_cs if _admin_cs.strip() else None
+        # Get client secret from environment
+        self.client_secret = os.getenv("KEYCLOAK_CLIENT_SECRET", "aigualba-frontend-secret-123")
+        # For embedded login, we use confidential client with direct access grants
+        self.public_client = False
+        # Use same client for admin operations (since we have embedded login)
+        self.admin_client_id = self.client_id
+        self.admin_client_secret = self.client_secret
         self.redirect_uri = os.getenv("KEYCLOAK_REDIRECT_URI", "http://localhost:8050/admin/callback")
-        
-        # If KEYCLOAK_PUBLIC_CLIENT is true and a secret was provided, ignore it to avoid sending invalid credentials.
-        if self.public_client and self.client_secret:
-            logger.info("KEYCLOAK_PUBLIC_CLIENT=true, ignoring KEYCLOAK_CLIENT_SECRET for public frontend client")
-            self.client_secret = None
 
     def get_auth_url(self, state=None):
         """Generate Keycloak authorization URL"""
@@ -65,11 +58,10 @@ class KeycloakAuth:
             "redirect_uri": self.redirect_uri
         }
 
-        # Prefer the configured KEYCLOAK_URL (works for local dev and proxied production).
-        # If that fails (e.g. frontend running inside docker needs internal hostname),
-        # fall back to the container-internal hostname replacement.
+        # Use the configured KEYCLOAK_URL and internal URL
         public_token_url = f"{self.keycloak_url}/realms/{self.realm}/protocol/openid-connect/token"
-        internal_keycloak_url = self.keycloak_url.replace('localhost', 'keycloak')
+        # Use internal URL for docker-compose communication
+        internal_keycloak_url = os.getenv("KEYCLOAK_INTERNAL_URL", "https://keycloak:8443")
         internal_token_url = f"{internal_keycloak_url}/realms/{self.realm}/protocol/openid-connect/token"
 
         # Try public URL first, then fallback to internal URL used inside docker-compose
@@ -142,89 +134,34 @@ class KeycloakAuth:
             return False
     
     def get_admin_token(self, username=None, password=None):
-        """Get admin token using direct grant for development
-
-        Behavior:
-        - If KEYCLOAK_ADMIN_CLIENT_ID + KEYCLOAK_ADMIN_CLIENT_SECRET provided:
-            * If username/password provided: use grant_type=password with confidential client.
-            * Else: use grant_type=client_credentials (service account).
-        - If KEYCLOAK_ADMIN_CLIENT_ID provided but no secret:
-            * Require KEYCLOAK_ADMIN_PUBLIC_CLIENT=true and username/password; use password grant (requires Direct Access Grants in Keycloak).
-        - If no admin client configured:
-            * Do not attempt password grant with the public frontend client — return None and log instructions.
-        """
-        # Determine which client to use for admin operations
-        admin_public_flag = os.getenv("KEYCLOAK_ADMIN_PUBLIC_CLIENT", "false").lower() in ("1", "true", "yes")
-
-        if self.admin_client_id and self.admin_client_secret:
-            # Confidential admin client available
-            client_id = self.admin_client_id
-            client_secret = self.admin_client_secret
-            if username and password:
-                data = {
-                    "grant_type": "password",
-                    "client_id": client_id,
-                    "client_secret": client_secret,
-                    "username": username,
-                    "password": password,
-                    "scope": "openid profile email roles"
-                }
-            else:
-                # Prefer client_credentials for service-account style tokens
-                data = {
-                    "grant_type": "client_credentials",
-                    "client_id": client_id,
-                    "client_secret": client_secret,
-                    "scope": "openid profile email roles"
-                }
-        elif self.admin_client_id and not self.admin_client_secret:
-            # Admin client exists but is public — only allow if explicitly configured
-            if not admin_public_flag:
-                logger.error(
-                    "Admin client %s is public but KEYCLOAK_ADMIN_PUBLIC_CLIENT not set. "
-                    "Set KEYCLOAK_ADMIN_PUBLIC_CLIENT=true to allow password grant with a public admin client, "
-                    "or configure a confidential admin client with KEYCLOAK_ADMIN_CLIENT_SECRET.",
-                    self.admin_client_id
-                )
-                return None
-            if not username or not password:
-                logger.error(
-                    "Admin public client %s requires username and password for password grant. "
-                    "Provide credentials or configure a confidential client.",
-                    self.admin_client_id
-                )
-                return None
-            client_id = self.admin_client_id
-            data = {
-                "grant_type": "password",
-                "client_id": client_id,
-                "username": username,
-                "password": password,
-                "scope": "openid profile email roles"
-            }
-            logger.warning("Using public admin client %s with password grant; ensure Direct Access Grants are enabled in Keycloak", client_id)
-        else:
-            # No admin client configured — do not attempt password grant with frontend public client
-            logger.error(
-                "No KEYCLOAK_ADMIN_CLIENT_ID configured. Refusing to perform password grant using the public frontend client '%s'. "
-                "Configure a confidential admin client (KEYCLOAK_ADMIN_CLIENT_ID/KEYCLOAK_ADMIN_CLIENT_SECRET) "
-                "or enable an explicit admin public client and set KEYCLOAK_ADMIN_PUBLIC_CLIENT=true.",
-                self.client_id
-            )
+        """Get admin token using password grant for embedded login"""
+        if not username or not password:
+            logger.error("Username and password are required for embedded login")
             return None
+
+        # Use password grant with the confidential client
+        data = {
+            "grant_type": "password",
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "username": username,
+            "password": password,
+            "scope": "openid profile email roles"
+        }
 
         # Token endpoint URLs (public + internal fallback)
         public_token_url = f"{self.keycloak_url}/realms/{self.realm}/protocol/openid-connect/token"
-        internal_keycloak_url = self.keycloak_url.replace('localhost', 'keycloak')
+        # Use internal URL for docker-compose communication (HTTP within secure container network)
+        internal_keycloak_url = os.getenv("KEYCLOAK_INTERNAL_URL", "http://keycloak:8080")
         internal_token_url = f"{internal_keycloak_url}/realms/{self.realm}/protocol/openid-connect/token"
 
         # Try public URL first, then internal
         try:
-            logger.debug("Requesting admin token (public) %s for client_id=%s", public_token_url, client_id)
+            logger.debug("Requesting admin token (public) %s for client_id=%s", public_token_url, self.client_id)
             response = requests.post(public_token_url, data=data, timeout=5)
             logger.debug("Response (public) status=%s body=%s", getattr(response, "status_code", None), getattr(response, "text", None))
             response.raise_for_status()
-            logger.info("Admin token obtained (public) for client_id=%s", client_id)
+            logger.info("Admin token obtained (public) for client_id=%s", self.client_id)
             return response.json()
         except requests.exceptions.RequestException as e_public:
             # If we have a response object, include its body for diagnostics
@@ -235,11 +172,11 @@ class KeycloakAuth:
                 body = ""
             logger.warning("Public admin token request failed: %s; response_body=%s", str(e_public), body)
             try:
-                logger.debug("Requesting admin token (internal) %s for client_id=%s", internal_token_url, client_id)
+                logger.debug("Requesting admin token (internal) %s for client_id=%s", internal_token_url, self.client_id)
                 response = requests.post(internal_token_url, data=data, timeout=5)
                 logger.debug("Response (internal) status=%s body=%s", getattr(response, "status_code", None), getattr(response, "text", None))
                 response.raise_for_status()
-                logger.info("Admin token obtained (internal) for client_id=%s", client_id)
+                logger.info("Admin token obtained (internal) for client_id=%s", self.client_id)
                 return response.json()
             except requests.exceptions.RequestException as e_internal:
                 body_int = ""

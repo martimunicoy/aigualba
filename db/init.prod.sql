@@ -64,3 +64,17 @@ COMMENT ON COLUMN mostres.recompte_enterococ IS 'Enterococci count in NPM/100ml'
 COMMENT ON COLUMN mostres.recompte_microorganismes_aerobis_22c IS 'Aerobic microorganisms count at 22°C in UFC/ml';
 COMMENT ON COLUMN mostres.recompte_coliformes_totals IS 'Total coliforms count in NMP/100ml';
 COMMENT ON COLUMN mostres.validated IS 'Whether the sample has been admin-validated for public display';
+
+CREATE TABLE IF NOT EXISTS visits (
+    id SERIAL PRIMARY KEY,
+    page VARCHAR(100) NOT NULL,
+    user_agent TEXT,
+    ip_address VARCHAR(45),
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for visits
+CREATE INDEX IF NOT EXISTS idx_visits_timestamp ON visits(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_visits_page ON visits(page);
+
+COMMENT ON TABLE visits IS 'Page visit tracking for admin/dashboard analytics';

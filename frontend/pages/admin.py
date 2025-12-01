@@ -17,7 +17,7 @@ def create_layout():
             # Login form (shown when not authenticated)
             html.Div([
                 html.Div([
-                    html.H1("Administració d'Aigualba", style={
+                    html.H1("Administració d'AiGualba", style={
                         'textAlign': 'center',
                         'color': '#2c3e50',
                         'marginBottom': '2rem'

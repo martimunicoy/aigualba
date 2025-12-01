@@ -142,11 +142,11 @@ echo "# DEV_DATABASE_URL=postgresql://devuser:$DEV_POSTGRES_PASSWORD@db:5432/aig
 fi)
 
 # Keycloak Configuration
-KEYCLOAK_URL=$PROTOCOL://$DOMAIN:$KEYCLOAK_PORT
+KEYCLOAK_URL=$PROTOCOL://auth.$DOMAIN
 KEYCLOAK_REALM=aigualba
 KEYCLOAK_CLIENT_ID=aigualba-frontend  
 KEYCLOAK_CLIENT_SECRET=$KEYCLOAK_CLIENT_SECRET
-KEYCLOAK_REDIRECT_URI=$PROTOCOL://$DOMAIN:$FRONTEND_PORT/admin
+KEYCLOAK_REDIRECT_URI=$PROTOCOL://$DOMAIN/admin
 KEYCLOAK_ADMIN_PASSWORD=$KEYCLOAK_ADMIN_PASSWORD
 
 # Keycloak Database Configuration
@@ -156,9 +156,47 @@ KC_DB_PASSWORD=$KC_DB_PASSWORD
 # Application Configuration
 DASH_DEBUG=$DASH_DEBUG
 ENVIRONMENT=$ENV_TYPE
+
+$(if [[ $ENV_TYPE == "production" ]]; then
+echo "# SSL Certificate Configuration (Production only)"
+echo "KC_HTTPS_CERTIFICATE_FILE=/opt/keycloak/conf/certs/live/aigualba.cat/fullchain.pem"
+echo "KC_HTTPS_CERTIFICATE_KEY_FILE=/opt/keycloak/conf/certs/live/aigualba.cat/privkey.pem"
+fi)
 EOF
 
 echo -e "${GREEN}✅ .env file created successfully!${NC}"
+echo
+
+# Update Keycloak realm configuration with generated client secret
+echo -e "${YELLOW}🔧 Updating Keycloak realm configuration...${NC}"
+if [ -f "keycloak/realm-import.json" ]; then
+    # Create backup of original realm file
+    cp keycloak/realm-import.json keycloak/realm-import.json.backup
+    
+    # Update the client secret in realm-import.json
+    if command -v sed &> /dev/null; then
+        # Use sed to replace the client secret
+        sed -i.bak "s/\"secret\": \"[^\"]*\"/\"secret\": \"$KEYCLOAK_CLIENT_SECRET\"/g" keycloak/realm-import.json
+        rm keycloak/realm-import.json.bak 2>/dev/null || true
+        echo -e "${GREEN}✅ Keycloak realm configuration updated with generated client secret${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Warning: sed not available, please manually update client secret in keycloak/realm-import.json${NC}"
+        echo -e "${YELLOW}   Replace 'aigualba-frontend-secret-123' with: $KEYCLOAK_CLIENT_SECRET${NC}"
+    fi
+else
+    echo -e "${RED}❌ Error: keycloak/realm-import.json not found${NC}"
+    echo -e "${YELLOW}   Please ensure you're in the correct directory${NC}"
+fi
+
+# Create database password update script
+echo -e "${YELLOW}🔧 Creating Keycloak database password update script...${NC}"
+cat > db/03-update-keycloak-password.sql << EOF
+-- Update Keycloak user password with generated password
+-- This script runs after the initial user creation
+ALTER ROLE keycloak_user WITH PASSWORD '$KC_DB_PASSWORD';
+EOF
+
+echo -e "${GREEN}✅ Keycloak database password update script created${NC}"
 echo
 
 # Display configuration summary
@@ -179,7 +217,8 @@ echo -e "${GREEN}🔐 Security Information${NC}"
 echo "======================="
 echo "✅ All passwords are randomly generated and secure"
 echo "✅ Database passwords: 24-32 characters"
-echo "✅ Client secrets: 64 characters"
+echo "✅ Client secrets: 64 characters" 
+echo "✅ Keycloak realm configuration automatically updated"
 echo "✅ Passwords contain alphanumeric characters only (database compatible)"
 echo
 

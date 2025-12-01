@@ -137,6 +137,9 @@ cd aigualba
 # Deploy with automated script
 ./deploy.sh
 
+# Setup Keycloak with security restrictions
+./setup-keycloak.sh
+
 # Verify deployment
 ./health-check.sh
 ```
@@ -158,10 +161,21 @@ docker-compose up -d
 ```
 
 #### 3. Production URLs
-- **Public Dashboard**: http://your-server (port 80)
-- **Admin Panel**: http://your-server/admin
-- **Backend API**: http://your-server/api
-- **Keycloak Admin**: http://your-server:8080
+- **Public Dashboard**: https://aigualba.cat
+- **Admin Panel**: https://aigualba.cat/admin
+- **Backend API**: https://aigualba.cat/api
+- **Keycloak Admin**: https://auth.aigualba.cat (restricted to local/private networks)
+
+#### 4. Security Configuration (Production)
+- **DNS Setup**: Ensure both `aigualba.cat` and `auth.aigualba.cat` point to your server
+- **SSL Certificates**: Should cover both domains (wildcard or individual certs)
+- **Network Access**: Keycloak admin console automatically restricted to local/private networks
+- **Remote Admin Access**: Use VPN or SSH tunnel for remote administration:
+  ```bash
+  # SSH tunnel example for remote admin access
+  ssh -L 8443:localhost:8443 user@aigualba.cat
+  # Then access https://localhost:8443 in your browser
+  ```
 
 For detailed production deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
@@ -231,13 +245,39 @@ The system uses different configurations for development and production:
 
 ## 🔐 Security & Authentication
 
+### Keycloak Configuration
+
+**Production URLs:**
+- **Main Application**: `https://aigualba.cat`
+- **Admin Panel**: `https://aigualba.cat/admin`
+- **Keycloak Admin Console**: `https://auth.aigualba.cat` (restricted access)
+
+**Development URLs:**
+- **Main Application**: `http://localhost:8050`
+- **Admin Panel**: `http://localhost:8050/admin`  
+- **Keycloak Admin Console**: `http://localhost:8080`
+
+### Security Features
+
+**IP Restrictions (Production):**
+The Keycloak admin console at `https://auth.aigualba.cat` is restricted to:
+- Localhost connections (127.0.0.1, ::1)
+- Private network ranges (10.x.x.x, 172.16-31.x.x, 192.168.x.x)
+- External access attempts receive 403 Forbidden
+
+**Authentication Flow:**
+- Users authenticate through embedded login form
+- Frontend communicates with Keycloak token endpoint (publicly accessible)
+- Admin console management restricted to authorized networks only
+
 ### Authentication System (Keycloak)
 - **OAuth2/OpenID Connect**: Industry-standard authentication
 - **Role-Based Access**: Admin vs regular user permissions  
 - **Session Management**: Secure token-based authentication
 - **User Management**: Centralized user administration
+- **Network Security**: Admin console access restricted to local/private networks
 
-### Security Features
+### Additional Security Features
 - **Protected Routes**: Admin-only access to management functions
 - **JWT Tokens**: Secure API authentication
 - **CORS Configuration**: Controlled cross-origin requests

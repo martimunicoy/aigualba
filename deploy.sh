@@ -44,15 +44,42 @@ fi
 
 # Check environment variables
 echo "🔧 Validating environment variables..."
-if ! grep -q "change_me_in_production" .env 2>/dev/null; then
+
+# Check for placeholder passwords
+if ! grep -q "change_me" .env 2>/dev/null; then
     echo "✅ Default passwords appear to have been changed"
 else
-    echo "⚠️  WARNING: Some default passwords still contain 'change_me_in_production'"
+    echo "⚠️  WARNING: Some default passwords still contain 'change_me'"
     echo "   Please update all passwords in .env file for security!"
     read -p "Continue anyway? (y/N): " confirm
     if [[ $confirm != [yY] ]]; then
         exit 1
     fi
+fi
+
+# Check for SSL certificate configuration if using HTTPS
+if grep -q "https://" .env 2>/dev/null; then
+    echo "🔍 HTTPS configuration detected, checking SSL certificate settings..."
+    
+    if ! grep -q "KC_HTTPS_CERTIFICATE_FILE=" .env || ! grep -q "KC_HTTPS_CERTIFICATE_KEY_FILE=" .env; then
+        echo "⚠️  WARNING: HTTPS URLs detected but SSL certificate variables missing"
+        echo "   Adding default SSL certificate paths to .env file..."
+        
+        # Add SSL certificate variables if not present
+        if ! grep -q "KC_HTTPS_CERTIFICATE_FILE=" .env; then
+            echo "KC_HTTPS_CERTIFICATE_FILE=/opt/keycloak/conf/certs/live/aigualba.cat/fullchain.pem" >> .env
+        fi
+        if ! grep -q "KC_HTTPS_CERTIFICATE_KEY_FILE=" .env; then
+            echo "KC_HTTPS_CERTIFICATE_KEY_FILE=/opt/keycloak/conf/certs/live/aigualba.cat/privkey.pem" >> .env
+        fi
+        
+        echo "✅ SSL certificate paths added to .env file"
+        echo "💡 Make sure your SSL certificates are properly mounted in docker-compose.yml"
+    else
+        echo "✅ SSL certificate configuration found"
+    fi
+else
+    echo "✅ HTTP configuration detected (development mode)"
 fi
 
 # Stop any existing containers
@@ -122,10 +149,26 @@ echo "📊 Service Status:"
 docker-compose ps
 echo
 echo "🌐 Application URLs:"
-echo "   - Main Application: http://localhost"
-echo "   - Admin Panel: http://localhost/admin"
-echo "   - Backend API: http://localhost/api"
-echo "   - Keycloak Admin: http://localhost:8080"
+# Read from .env to show actual configured URLs
+if [ -f ".env" ]; then
+    KEYCLOAK_URL=$(grep "^KEYCLOAK_URL=" .env | cut -d'=' -f2 2>/dev/null || echo "http://localhost:8080")
+    if [[ "$KEYCLOAK_URL" == *"auth.aigualba.cat"* ]]; then
+        echo "   - Main Application: https://aigualba.cat"
+        echo "   - Admin Panel: https://aigualba.cat/admin"
+        echo "   - Backend API: https://aigualba.cat/api"
+        echo "   - Keycloak Admin: https://auth.aigualba.cat (restricted to local/private networks)"
+    else
+        echo "   - Main Application: http://localhost"
+        echo "   - Admin Panel: http://localhost/admin"
+        echo "   - Backend API: http://localhost/api"
+        echo "   - Keycloak Admin: $KEYCLOAK_URL"
+    fi
+else
+    echo "   - Main Application: http://localhost"
+    echo "   - Admin Panel: http://localhost/admin"
+    echo "   - Backend API: http://localhost/api"
+    echo "   - Keycloak Admin: http://localhost:8080"
+fi
 echo
 echo "👤 Default Admin Credentials:"
 echo "   - Username: admin"
@@ -146,10 +189,13 @@ echo
 # Security recommendations
 echo "🔐 IMPORTANT SECURITY REMINDERS:"
 echo "  1. Change default passwords in .env file"
-echo "  2. Configure HTTPS with SSL certificates"
-echo "  3. Close unnecessary ports in firewall"
-echo "  4. Regular backups of database"
-echo "  5. Monitor application logs"
+echo "  2. Configure HTTPS with SSL certificates for both domains"
+echo "  3. Ensure DNS points both aigualba.cat and auth.aigualba.cat to server"
+echo "  4. Keycloak admin console restricted to local/private networks"
+echo "  5. Use VPN or SSH tunnel for remote Keycloak administration"
+echo "  6. Close unnecessary ports in firewall"
+echo "  7. Regular backups of database"
+echo "  8. Monitor application logs"
 echo
 echo "🎯 Next Steps:"
 echo "  1. Test the application functionality"

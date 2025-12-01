@@ -24,16 +24,20 @@
       "name": "Aigualba Frontend Application",
       "enabled": true,
       "clientAuthenticatorType": "client-secret",
-      "secret": "aigualba-frontend-secret-123",
+      "secret": "VNSfJDkuLZAAJBtvXZdU0EDT14N9gigsxNnwov4E7nZtXgCKWsQXBP6eMEQS7ICl",
       "redirectUris": [
         "http://localhost:8050/*",
         "http://localhost:3000/*",
-        "http://frontend:8050/*"
+        "http://frontend:8050/*",
+        "https://aigualba.cat/*",
+        "https://auth.aigualba.cat/*"
       ],
       "webOrigins": [
         "http://localhost:8050",
         "http://localhost:3000",
-        "http://frontend:8050"
+        "http://frontend:8050",
+        "https://aigualba.cat",
+        "https://auth.aigualba.cat"
       ],
       "protocol": "openid-connect",
       "publicClient": false,

@@ -60,30 +60,69 @@ else
 fi
 
 echo ""
+# Read configuration from .env file
+if [ -f ".env" ]; then
+    KEYCLOAK_ADMIN_PASSWORD=$(grep "^KEYCLOAK_ADMIN_PASSWORD=" .env | cut -d'=' -f2)
+    KEYCLOAK_CLIENT_SECRET=$(grep "^KEYCLOAK_CLIENT_SECRET=" .env | cut -d'=' -f2)
+    KEYCLOAK_URL=$(grep "^KEYCLOAK_URL=" .env | cut -d'=' -f2)
+    
+    # Use default values if not found in .env
+    KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-"admin123"}
+    KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-"aigualba-frontend-secret-123"}
+    KEYCLOAK_URL=${KEYCLOAK_URL:-"http://localhost:8080"}
+else
+    echo "⚠️  .env file not found, using default values"
+    KEYCLOAK_ADMIN_PASSWORD="admin123"
+    KEYCLOAK_CLIENT_SECRET="aigualba-frontend-secret-123"
+    KEYCLOAK_URL="http://localhost:8080"
+fi
+
 echo "🔧 Keycloak Configuration:"
-echo "  - Admin Console: http://localhost:8080"
+echo "  - Admin Console: $KEYCLOAK_URL"
 echo "  - Admin Username: admin"
-echo "  - Admin Password: admin123"
+echo "  - Admin Password: $KEYCLOAK_ADMIN_PASSWORD"
 echo "  - Realm: aigualba"
+echo "  - Client ID: aigualba-frontend"
+echo "  - Client Secret: $KEYCLOAK_CLIENT_SECRET"
 echo ""
-echo "👤 Test Users:"
-echo "  Admin User:"
-echo "    - Username: admin"
-echo "    - Password: admin123"
-echo "  Regular User:"
-echo "    - Username: user" 
-echo "    - Password: user123"
+echo "👤 Admin User Credentials:"
+echo "  - Username: admin"
+echo "  - Password: admin123 (configured in realm)"
 echo ""
 echo "🔗 Application URLs:"
-echo "  - Aigualba Frontend: http://localhost:8051"
-echo "  - Aigualba Backend API: http://localhost:8001"
-echo "  - Admin Panel: http://localhost:8051/admin"
+if [[ "$KEYCLOAK_URL" == *"localhost"* ]]; then
+    echo "  - Aigualba Frontend: http://localhost:8050"
+    echo "  - Aigualba Backend API: http://localhost:8000"
+    echo "  - Admin Panel: http://localhost:8050/admin"
+    echo "  - Keycloak Admin: http://localhost:8080"
+else
+    echo "  - Aigualba Frontend: https://aigualba.cat"
+    echo "  - Aigualba Backend API: https://aigualba.cat/api"
+    echo "  - Admin Panel: https://aigualba.cat/admin"
+    echo "  - Keycloak Admin: https://auth.aigualba.cat (restricted to local/private networks)"
+fi
+echo ""
+echo "🔒 Security Configuration:"
+if [[ "$KEYCLOAK_URL" != *"localhost"* ]]; then
+    echo "  - Keycloak admin console (auth.aigualba.cat) is restricted to:"
+    echo "    * Localhost (127.0.0.1, ::1)"
+    echo "    * Private networks (10.x.x.x, 172.16-31.x.x, 192.168.x.x)"
+    echo "  - Authentication endpoint remains publicly accessible for user login"
+    echo "  - External users will receive 403 Forbidden when accessing admin console"
+fi
 echo ""
 echo "📝 Next Steps:"
-echo "1. Access the admin console at http://localhost:8080"
-echo "2. Login with admin/admin123"
-echo "3. Verify the 'aigualba' realm is imported"
-echo "4. Test the admin login at http://localhost:8051/admin"
+echo "1. Access the Keycloak admin console at $KEYCLOAK_URL"
+if [[ "$KEYCLOAK_URL" != *"localhost"* ]]; then
+    echo "   NOTE: Admin console only accessible from local/private networks"
+fi
+echo "2. Login with admin/$KEYCLOAK_ADMIN_PASSWORD"
+echo "3. Verify the 'aigualba' realm is imported with correct client secret"
+if [[ "$KEYCLOAK_URL" == *"localhost"* ]]; then
+    echo "4. Test the admin login at http://localhost:8050/admin with admin/admin123"
+else
+    echo "4. Test the admin login at https://aigualba.cat/admin with admin/admin123"
+fi
 echo ""
 echo "🛠️  Troubleshooting:"
 echo "  - If realm import fails, manually import keycloak/realm-import.json"
