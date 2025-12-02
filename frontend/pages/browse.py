@@ -17,6 +17,10 @@ def create_browse_page():
                        'textAlign': 'center'
                    }),
             
+            # Validation status notification
+            html.Div(id='validation-status-notification', 
+                    style={'marginBottom': '1rem'}),
+            
             # Instructions section
             html.Div([
                 html.H3("Com utilitzar aquesta pàgina", 

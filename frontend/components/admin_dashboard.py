@@ -30,13 +30,13 @@ def create_admin_statistics(stats_data):
             
             html.Div([
                 html.Span(str(stats_data.get('total_visits_30_days', 0)), className='admin-stat-number'),
-                html.Span("Visites (30 dies)", className='admin-stat-label')
+                html.Span("Visitants únics (30 dies)", className='admin-stat-label')
             ], className='admin-stat-card')
         ], className='admin-stats-grid'),
         
         # Visits chart section
         html.Div([
-            html.H4("Visites dels últims 7 dies", style={'marginBottom': '1rem', 'color': '#2c3e50'}),
+            html.H4("Visitants únics dels últims 7 dies", style={'marginBottom': '1rem', 'color': '#2c3e50'}),
             html.Div(id='visits-chart-container', children=[
                 create_visits_chart(stats_data.get('visits_last_7_days', []))
             ])
@@ -50,7 +50,7 @@ def create_admin_statistics(stats_data):
         
         # Monthly visits chart section
         html.Div([
-            html.H4("Visites per mes de l'últim any", style={'marginBottom': '1rem', 'color': '#2c3e50'}),
+            html.H4("Visitants únics per mes de l'últim any", style={'marginBottom': '1rem', 'color': '#2c3e50'}),
             html.Div(id='visits-monthly-chart-container', children=[
                 create_monthly_visits_chart(stats_data.get('visits_last_year_monthly', []))
             ])
@@ -81,7 +81,7 @@ def create_visits_chart(visits_data):
     print(f"DEBUG: visits_data type: {type(visits_data)}, empty check: {not visits_data}")
     
     if not visits_data:
-        return html.P("No hi ha dades de visites disponibles.", style={
+        return html.P("No hi ha dades de visitants disponibles.", style={
             'textAlign': 'center',
             'color': '#6c757d',
             'padding': '2rem'
@@ -145,7 +145,7 @@ def create_visits_chart(visits_data):
 def create_monthly_visits_chart(visits_monthly_data):
     """Create a monthly visits chart using HTML/CSS"""
     if not visits_monthly_data:
-        return html.P("No hi ha dades de visites mensuals disponibles.", style={
+        return html.P("No hi ha dades de visitants mensuals disponibles.", style={
             'textAlign': 'center',
             'color': '#6c757d',
             'padding': '2rem'

@@ -1,9 +1,38 @@
 from fastapi import APIRouter, HTTPException
 from models import MostreData
 from database import fetch_mostres, create_mostre, fetch_all_mostres, validate_mostre, invalidate_mostre
+import psycopg2
+import os
 
 router = APIRouter(prefix="/api/mostres", tags=["samples"])
 
+def get_db_connection():
+    """Get database connection"""
+    try:
+        database_url = os.getenv("DATABASE_URL")
+        if not database_url:
+            raise HTTPException(status_code=500, detail="DATABASE_URL environment variable not set")
+        connection = psycopg2.connect(database_url)
+        return connection
+    except psycopg2.Error as e:
+        print(f"Database connection error: {e}")
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+@router.get("/pending-count")
+def get_pending_validation_count():
+    """Get count of samples pending validation (public endpoint)"""
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            # Count samples that are not validated
+            cursor.execute("SELECT COUNT(*) FROM mostres WHERE validated = false")
+            pending_count = cursor.fetchone()[0]
+            
+        return {"pending_count": pending_count}
+    except psycopg2.Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    finally:
+        connection.close()
 
 @router.get("/")
 def read_samples():

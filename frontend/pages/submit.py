@@ -74,9 +74,9 @@ def create_submit_page():
                     html.Li("Assegura't que les mesures siguin precises i recents"),
                     html.Li("Utilitza equips calibrats per obtenir lectures fiables"),
                     html.Li("Els camps marcats amb * són obligatoris"),
+                    html.Li("Has d'introduir almenys un paràmetre per poder enviar la mostra"),
                     html.Li("El clor combinat es calcula automàticament"),
-                    html.Li("Els paràmetres microbiològics haurien de ser propers a zero per a aigua potable"),
-                    html.Li("Tots els paràmetres són opcionals excepte la data i punt de mostreig")
+                    html.Li("Els paràmetres microbiològics haurien de ser propers a zero per a aigua potable")
                 ], style={'fontSize': '1rem', 'lineHeight': '1.6', 'color': '#34495e'})
             ], style={
                 'backgroundColor': 'white', 
@@ -123,9 +123,9 @@ def create_submit_page():
             
             # Physical and chemical parameters
             create_section("Paràmetres físics i químics", [
-                create_input_field("temperatura", "Temperatura (°C)", placeholder="ex. 20.5", min_val=-5, max_val=60, step=0.1),
+                create_input_field("temperatura", "Temperatura (°C)", placeholder="ex. 20.5", min_val=-5, max_val=100, step=0.1),
                 create_input_field("ph", "pH", placeholder="ex. 7.2", min_val=0, max_val=14, step=0.1),
-                create_input_field("conductivitat-20c", "Conductivitat a 20°C (μS/cm)", placeholder="ex. 250", min_val=0, max_val=10000, step=1),
+                create_input_field("conductivitat-20c", "Conductivitat a 20°C (μS/cm)", placeholder="ex. 250", min_val=0, step=1),
                 create_input_field("terbolesa", "Terbolesa (UNF)", placeholder="ex. 0.5", min_val=0, step=0.01),
                 create_input_field("color", "Color (mg/l Pt-Co)", placeholder="ex. 5", min_val=0, step=0.1),
                 create_input_field("olor", "Olor (índex dilució a 25°C)", placeholder="ex. 2", min_val=0, step=1),
@@ -134,8 +134,8 @@ def create_submit_page():
             
             # Chlorine parameters
             create_section("Paràmetres de clor", [
-                create_input_field("clor-lliure", "Clor lliure (mg Cl₂/l)", placeholder="ex. 0.5", min_val=0, max_val=50, step=0.01),
-                create_input_field("clor-total", "Clor total (mg Cl₂/l)", placeholder="ex. 0.8", min_val=0, max_val=50, step=0.01),
+                create_input_field("clor-lliure", "Clor lliure (mg Cl₂/l)", placeholder="ex. 0.5", min_val=0, step=0.01),
+                create_input_field("clor-total", "Clor total (mg Cl₂/l)", placeholder="ex. 0.8", min_val=0, step=0.01),
             ], note="Nota: El clor combinat es calcula automàticament com a clor total menys clor lliure."),
 
             # Microbiological parameters

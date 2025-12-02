@@ -24,23 +24,54 @@ from utils.helpers import (get_backend_url, fetch_parameters, create_parameter_c
                            submit_sample_data, validate_sample_data, fetch_samples, create_samples_table, create_sample_details,
                            create_data_visualizations, filter_samples_by_criteria, get_unique_locations, 
                            fetch_latest_gualba_sample, create_latest_sample_summary, fetch_latest_sample_by_location,
-                           fetch_latest_sample_any_location)
+                           fetch_latest_sample_any_location, fetch_pending_samples_count)
 
 # Get backend URL
 BACKEND_URL = get_backend_url()
 
 def track_visit(page_name, request=None):
-    """Track a visit to a page"""
+    """Track a visit to a page with unique IP tracking"""
     try:
+        # Get IP address and user agent
+        ip_address = ''
+        user_agent = ''
+        
+        # Since we're in a Dash callback context, try to access Flask request
+        try:
+            # Access the underlying Flask app request context
+            from dash import ctx
+            if hasattr(ctx, 'request') and ctx.request:
+                # Try to get real IP considering proxy headers
+                headers = getattr(ctx.request, 'headers', {})
+                environ = getattr(ctx.request, 'environ', {})
+                
+                # Check for forwarded IP headers first (from nginx proxy)
+                x_forwarded = headers.get('X-Forwarded-For', '')
+                x_real = headers.get('X-Real-IP', '')
+                remote_addr = environ.get('REMOTE_ADDR', '')
+                
+                if x_forwarded:
+                    ip_address = x_forwarded.split(',')[0].strip()
+                elif x_real:
+                    ip_address = x_real
+                else:
+                    ip_address = remote_addr
+                    
+                user_agent = headers.get('User-Agent', '')
+        except Exception:
+            # If we can't get request context, generate a session-based identifier
+            # This ensures some level of uniqueness for tracking
+            pass
+            
         visit_data = {
             'page': page_name,
-            'user_agent': request.headers.get('User-Agent', '') if request else '',
-            'ip_address': request.environ.get('REMOTE_ADDR', '') if request else ''
+            'user_agent': user_agent,
+            'ip_address': ip_address or 'unknown'  # Ensure we have some identifier
         }
         
         response = requests.post(f"{BACKEND_URL}/api/admin/visits", json=visit_data, timeout=5)
         if response.status_code == 200:
-            print(f"Visit tracked: {page_name}")
+            print(f"Visit tracked: {page_name} from {ip_address or 'unknown IP'}")
         else:
             print(f"Failed to track visit: {response.status_code}")
     except Exception as e:
@@ -568,6 +599,104 @@ def update_samples_table(filtered_data, current_page, page_size, sort_column, so
     print(f"Filtered data count: {len(data)}")
     return create_samples_table(data, current_page, page_size, sort_column, sort_order)
 
+# Callback for validation status notification on browse page
+@app.callback(
+    Output('validation-status-notification', 'children'),
+    [Input('interval-browse', 'n_intervals')]
+)
+def update_validation_status_notification(n_intervals):
+    """Update the validation status notification banner"""
+    try:
+        pending_count = fetch_pending_samples_count(BACKEND_URL)
+        
+        if pending_count > 0:
+            if pending_count == 1:
+                message_content = [
+                    "Hi ha 1 mostra pendent de validació per part dels administradors. Podeu contactar-los a ",
+                    html.A("contacte@aigualba.cat", href="mailto:contacte@aigualba.cat", style={'color': '#0c5460', 'textDecoration': 'underline'}),
+                    "."
+                ]
+            else:
+                message_content = [
+                    f"Hi ha {pending_count} mostres pendents de validació per part dels administradors. Podeu contactar-los a ",
+                    html.A("contacte@aigualba.cat", href="mailto:contacte@aigualba.cat", style={'color': '#0c5460', 'textDecoration': 'underline'}),
+                    "."
+                ]
+            
+            return html.Div([
+                html.Div([
+                    html.I(className="fas fa-info-circle", style={'marginRight': '10px', 'fontSize': '1.2rem'}),
+                    html.Span(message_content, style={'fontSize': '1rem', 'fontWeight': '500'})
+                ], style={
+                    'backgroundColor': '#d1ecf1',
+                    'border': '1px solid #bee5eb',
+                    'borderRadius': '8px',
+                    'color': '#0c5460',
+                    'padding': '12px 16px',
+                    'display': 'flex',
+                    'alignItems': 'center',
+                    'boxShadow': '0 2px 4px rgba(0,0,0,0.1)'
+                })
+            ])
+        else:
+            # Return empty div if no pending samples
+            return html.Div()
+            
+    except Exception as e:
+        print(f"Error updating validation status notification: {e}")
+        return html.Div()
+
+# Callback for validation status notification on visualize page
+@app.callback(
+    Output('validation-status-notification-visualize', 'children'),
+    [Input('url', 'pathname')]
+)
+def update_validation_status_notification_visualize(pathname):
+    """Update the validation status notification banner on visualize page"""
+    # Only show notification when on visualize page
+    if pathname != '/visualize':
+        return html.Div()
+    
+    try:
+        pending_count = fetch_pending_samples_count(BACKEND_URL)
+        
+        if pending_count > 0:
+            if pending_count == 1:
+                message_content = [
+                    "Hi ha 1 mostra pendent de validació per part dels administradors. Podeu contactar-los a ",
+                    html.A("contacte@aigualba.cat", href="mailto:contacte@aigualba.cat", style={'color': '#0c5460', 'textDecoration': 'underline'}),
+                    "."
+                ]
+            else:
+                message_content = [
+                    f"Hi ha {pending_count} mostres pendents de validació per part dels administradors. Podeu contactar-los a ",
+                    html.A("contacte@aigualba.cat", href="mailto:contacte@aigualba.cat", style={'color': '#0c5460', 'textDecoration': 'underline'}),
+                    "."
+                ]
+            
+            return html.Div([
+                html.Div([
+                    html.I(className="fas fa-info-circle", style={'marginRight': '10px', 'fontSize': '1.2rem'}),
+                    html.Span(message_content, style={'fontSize': '1rem', 'fontWeight': '500'})
+                ], style={
+                    'backgroundColor': '#d1ecf1',
+                    'border': '1px solid #bee5eb',
+                    'borderRadius': '8px',
+                    'color': '#0c5460',
+                    'padding': '12px 16px',
+                    'display': 'flex',
+                    'alignItems': 'center',
+                    'boxShadow': '0 2px 4px rgba(0,0,0,0.1)'
+                })
+            ])
+        else:
+            # Return empty div if no pending samples
+            return html.Div()
+            
+    except Exception as e:
+        print(f"Error updating validation status notification on visualize page: {e}")
+        return html.Div()
+
 # Callback for data visualizations
 @app.callback(
     Output('data-visualizations', 'children'),
@@ -873,7 +1002,7 @@ def handle_sample_submission(n_clicks, sample_date, punt_mostreig, temperatura, 
     if validation['warnings']:
         validation_alert.append(
             html.Div([
-                html.H5("Avisos:", style={'marginBottom': '0.5rem'}),
+                html.Div("Avisos:", style={'marginBottom': '0.5rem'}),
                 html.Ul([html.Li(warning) for warning in validation['warnings']])
             ], className='validation-warning')
         )

@@ -15,6 +15,10 @@ def create_visualize_page():
                        'textAlign': 'center'
                    }),
             
+            # Validation status notification
+            html.Div(id='validation-status-notification-visualize', 
+                    style={'marginBottom': '1rem'}),
+            
             # Instructions section
             html.Div([
                 html.H3("Com utilitzar aquesta pàgina", 

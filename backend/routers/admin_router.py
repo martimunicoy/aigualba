@@ -273,13 +273,15 @@ def get_admin_statistics(token: str = Depends(verify_admin_token)):
                     sample['created_at'] = sample['created_at'].isoformat()
                 recent_samples.append(sample)
             
-            # Get visits statistics for last 7 days
+            # Get visits statistics for last 7 days (unique visitors by IP per day)
             cursor.execute("""
                 SELECT 
                     DATE(timestamp) as visit_date,
-                    COUNT(*) as visits
+                    COUNT(DISTINCT ip_address) as unique_visitors
                 FROM visits 
                 WHERE timestamp >= NOW() - INTERVAL '7 days'
+                  AND ip_address IS NOT NULL 
+                  AND ip_address != ''
                 GROUP BY DATE(timestamp)
                 ORDER BY visit_date ASC
             """)
@@ -288,10 +290,10 @@ def get_admin_statistics(token: str = Depends(verify_admin_token)):
             for row in cursor.fetchall():
                 visits_data.append({
                     "date": row[0].strftime('%Y-%m-%d'),
-                    "visits": row[1]
+                    "visits": row[1]  # Now represents unique visitors
                 })
             
-            # Get monthly visits statistics for last year (including months with 0 visits)
+            # Get monthly visits statistics for last year (unique visitors by IP per month)
             cursor.execute("""
                 WITH months AS (
                     SELECT DATE_TRUNC('month', generate_series(
@@ -302,9 +304,11 @@ def get_admin_statistics(token: str = Depends(verify_admin_token)):
                 )
                 SELECT 
                     m.month_date,
-                    COALESCE(COUNT(v.timestamp), 0) as visits
+                    COALESCE(COUNT(DISTINCT v.ip_address), 0) as unique_visitors
                 FROM months m
                 LEFT JOIN visits v ON DATE_TRUNC('month', v.timestamp) = m.month_date
+                  AND v.ip_address IS NOT NULL 
+                  AND v.ip_address != ''
                 GROUP BY m.month_date
                 ORDER BY m.month_date ASC
             """)
@@ -313,13 +317,15 @@ def get_admin_statistics(token: str = Depends(verify_admin_token)):
             for row in cursor.fetchall():
                 visits_monthly_data.append({
                     "month": row[0].strftime('%Y-%m'),
-                    "visits": row[1]
+                    "visits": row[1]  # Now represents unique visitors
                 })
             
-            # Get total visits for last 30 days
+            # Get total unique visitors for last 30 days
             cursor.execute("""
-                SELECT COUNT(*) FROM visits 
+                SELECT COUNT(DISTINCT ip_address) FROM visits 
                 WHERE timestamp >= NOW() - INTERVAL '30 days'
+                  AND ip_address IS NOT NULL 
+                  AND ip_address != ''
             """)
             total_visits = cursor.fetchone()[0]
             

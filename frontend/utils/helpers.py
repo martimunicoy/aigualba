@@ -134,6 +134,20 @@ def fetch_samples(backend_url):
         traceback.print_exc()
         return []
 
+def fetch_pending_samples_count(backend_url):
+    """Fetch count of samples pending validation"""
+    try:
+        resp = requests.get(f"{backend_url}/api/mostres/pending-count", timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            return data.get('pending_count', 0)
+        else:
+            print(f"Error getting pending count: {resp.status_code} - {resp.text}")
+            return 0
+    except Exception as e:
+        print(f"Error fetching pending count: {e}")
+        return 0
+
 def fetch_sample_by_id(backend_url, sample_id):
     """Fetch a specific sample by ID from the backend API"""
     try:
@@ -249,6 +263,28 @@ def validate_sample_data(sample_data):
         if not sample_data.get(field):
             errors.append(f"El camp {field.replace('_', ' ')} és obligatori")
     
+    # Check if date and location are provided but no parameters are set
+    if sample_data.get('data') and sample_data.get('punt_mostreig'):
+        # List of all parameter fields (excluding required basic info)
+        parameter_fields = [
+            'temperatura', 'ph', 'conductivitat_20c', 'terbolesa', 'color', 'olor', 'sabor',
+            'clor_lliure', 'clor_total', 'recompte_escherichia_coli', 'recompte_enterococ',
+            'recompte_microorganismes_aerobis_22c', 'recompte_coliformes_totals',
+            'acid_monocloroacetic', 'acid_dicloroacetic', 'acid_tricloroacetic',
+            'acid_monobromoacetic', 'acid_dibromoacetic'
+        ]
+        
+        # Check if at least one parameter has a value
+        has_parameters = False
+        for field in parameter_fields:
+            value = sample_data.get(field)
+            if value is not None and value != '' and str(value).strip() != '':
+                has_parameters = True
+                break
+        
+        if not has_parameters:
+            errors.append("Has d'introduir almenys un paràmetre per enviar la mostra.")
+    
     # Check numeric fields (if provided)
     numeric_fields = ['temperatura', 'clor_lliure', 'clor_total', 'ph', 'terbolesa']
     for field in numeric_fields:
@@ -259,22 +295,76 @@ def validate_sample_data(sample_data):
             except ValueError:
                 errors.append(f"El camp {field.replace('_', ' ')} ha de ser un número")
     
-    # Check for potentially unusual values (warnings)
+    # Check for potentially unusual values (warnings) using defined thresholds
+    from utils.thresholds import get_threshold, WATER_QUALITY_THRESHOLDS
+    
+    # Check all parameters that have defined thresholds
+    for field, value in sample_data.items():
+        if value is not None and value != '' and field not in ['data', 'punt_mostreig']:
+            try:
+                float_val = float(value)
+                threshold = get_threshold(field)
+                if threshold:
+                    min_val = float(threshold['min'])
+                    max_val = float(threshold['max'])
+                    if float_val < min_val or float_val > max_val:
+                        warnings.append(f"{threshold['name']} fora del rang recomanat: {float_val} {threshold['unit']} (rang: {min_val}-{max_val} {threshold['unit']})")
+            except ValueError:
+                pass  # Already handled as error above
+    
+    # Check suma_haloacetics if individual haloacetic values are provided
+    haloacetic_fields = ['acid_monocloroacetic', 'acid_dicloroacetic', 'acid_tricloroacetic', 
+                        'acid_monobromoacetic', 'acid_dibromoacetic']
+    haloacetic_values = []
+    
+    for field in haloacetic_fields:
+        value = sample_data.get(field)
+        if value is not None and value != '':
+            try:
+                haloacetic_values.append(float(value))
+            except ValueError:
+                pass
+    
+    if haloacetic_values:
+        total_haloacetics = sum(haloacetic_values)
+        # Use the threshold defined in thresholds.py
+        suma_threshold = get_threshold('suma_haloacetics')
+        if suma_threshold:
+            max_val = float(suma_threshold['max'])
+            if total_haloacetics > max_val:
+                warnings.append(f"{suma_threshold['name']} elevada: {total_haloacetics:.1f} {suma_threshold['unit']} (límit: {max_val} {suma_threshold['unit']})")
+            elif total_haloacetics > max_val * 0.67:  # Warning at 67% of limit
+                warnings.append(f"{suma_threshold['name']} moderada: {total_haloacetics:.1f} {suma_threshold['unit']} (límit: {max_val} {suma_threshold['unit']})")
+    
+    # Additional warnings for parameters not in thresholds.py
+    # Temperature (not in thresholds as it's environmental, not regulated)
     if sample_data.get('temperatura'):
         try:
             temp = float(sample_data['temperatura'])
             if temp < 0 or temp > 40:
-                warnings.append(f"Temperatura inusual: {temp}°C")
+                warnings.append(f"Temperatura inusual: {temp}°C (rang típic per aigua: 5-25°C)")
         except ValueError:
-            pass  # Already handled as error above
+            pass
     
-    if sample_data.get('ph'):
-        try:
-            ph_val = float(sample_data['ph'])
-            if ph_val < 6.0 or ph_val > 9.0:
-                warnings.append(f"Valor de pH fora del rang normal: {ph_val}")
-        except ValueError:
-            pass  # Already handled as error above
+    # Microbiological parameters (should be zero for safe drinking water)
+    micro_params = {
+        'recompte_escherichia_coli': ('E. coli', 'NPM/100mL'),
+        'recompte_enterococ': ('Enterococ', 'NPM/100mL'), 
+        'recompte_coliformes_totals': ('Coliformes totals', 'NMP/100mL'),
+        'recompte_microorganismes_aerobis_22c': ('Microorganismes aerobis', 'UFC/mL')
+    }
+    
+    for field, (display_name, unit) in micro_params.items():
+        value = sample_data.get(field)
+        if value is not None and value != '':
+            try:
+                float_val = float(value)
+                if field == 'recompte_microorganismes_aerobis_22c' and float_val > 100:
+                    warnings.append(f"{display_name} elevat: {float_val} {unit} (recomanat: <100 {unit})")
+                elif field != 'recompte_microorganismes_aerobis_22c' and float_val > 0:
+                    warnings.append(f"{display_name} detectat: {float_val} {unit} (ideal: 0 {unit} per aigua potable)")
+            except ValueError:
+                pass
     
     return {'errors': errors, 'warnings': warnings}
 
@@ -1239,7 +1329,7 @@ def create_samples_by_month_chart(samples):
     
     fig.update_layout(
         title={
-            'text': 'Evolució de mostres durant els últims 12 mesos',
+            'text': 'Mostres carregades els últims 12 mesos',
             'x': 0.5,
             'xanchor': 'center',
             'font': {'size': 16, 'color': '#2c3e50'}
