@@ -222,9 +222,8 @@ def create_home_page():
             'margin': '2rem auto',
             'padding': '3rem 0',
             'borderRadius': '10px',
-            'boxShadow': '0 4px 20px rgba(0,0,0,0.1)',
-            'maxWidth': '1200px',
-            'width': '100vw'
+            'boxShadow': '0 4px 15px rgba(0,0,0,0.1)',
+            'maxWidth': '1200px'
         }),
 
         # Live Data Section
@@ -267,9 +266,8 @@ def create_home_page():
             'margin': '2rem auto', 
             'padding': '3rem 0', 
             'borderRadius': '10px', 
-            'boxShadow': '0 4px 20px rgba(0,0,0,0.1)', 
-            'maxWidth': '1200px',
-            'width': '100vw'
+            'boxShadow': '0 4px 15px rgba(0,0,0,0.1)', 
+            'maxWidth': '1200px'
         }),
 
         # Mailing List Subscription Section
@@ -456,8 +454,7 @@ def create_home_page():
             'margin': '2rem auto', 
             'padding': '3rem 0', 
             'borderRadius': '10px', 
-            'boxShadow': '0 4px 20px rgba(0,0,0,0.1)', 
-            'maxWidth': '1200px',
-            'width': '100vw'
+            'boxShadow': '0 4px 15px rgba(0,0,0,0.1)', 
+            'maxWidth': '1200px'
         })
     ])
