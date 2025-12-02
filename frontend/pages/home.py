@@ -10,6 +10,7 @@ def create_home_page():
             # Background Image
             html.Img(src='/assets/images/3c7ac384742589.5d66896467ca0.jpg', 
                      alt='Photography by Rafael Aguilera Moyano',
+                     className='hero-image',
                      style={
                          'width': '100vw', 
                          'maxWidth': '1200px',
@@ -21,8 +22,7 @@ def create_home_page():
                          'left': '50%',
                          'transform': 'translateX(-50%)',
                          'zIndex': '1',
-                         'borderRadius': '10px', 
-
+                         'borderRadius': '10px'
                      }),
             
             # Overlay Content
@@ -32,7 +32,7 @@ def create_home_page():
                     "Benvingut a ",
                     html.Span("AiGua", style={'color': '#3498db'}),
                     "lba!"
-                ], style={
+                ], className='hero-title', style={
                             'fontSize': '3.5rem', 
                             'marginBottom': '2rem', 
                             'fontWeight': '300',
@@ -45,6 +45,7 @@ def create_home_page():
                 html.Div([
                     html.Img(src='/assets/images/logo3.png', 
                              alt='AiGua-lba Logo',
+                             className='hero-logo',
                              style={
                                  'height': '80px',
                                  'width': 'auto',
@@ -52,11 +53,12 @@ def create_home_page():
                              })
                 ], style={
                     'textAlign': 'center',
-                    'margin': '0 0 1.5rem 0'
+                    'margin': '0 0 0.5rem 0'
                 }),
                 
                 # Description
                 html.P("Monitoritza i segueix els paràmetres del sistema públic d'aigua del municipi de Gualba", 
+                       className='hero-description',
                        style={
                            'fontSize': '1.2rem', 
                            'marginBottom': '2rem', 
@@ -96,8 +98,8 @@ def create_home_page():
                                    'cursor': 'pointer',
                                    'boxShadow': '0 4px 8px rgba(0,0,0,0.3)'
                                })
-                ], style={'textAlign': 'center', 'marginTop': '2rem'})
-            ], style={
+                ], className='hero-buttons', style={'textAlign': 'center', 'marginTop': '2rem'})
+            ], className='hero-overlay', style={
                 'position': 'absolute',
                 'top': '0',
                 'left': '50%',
@@ -117,6 +119,7 @@ def create_home_page():
             # Photo credit - positioned over the image
             html.Div([
                 html.P("Foto: Rafael Aguilera Moyano", 
+                       className='photo-credit',
                        style={
                            'fontSize': '0.8rem', 
                            'opacity': '0.8',
@@ -138,7 +141,7 @@ def create_home_page():
                 'margin': '0 auto',
                 'transform': 'translateX(0)'
             })
-        ], style={
+        ], className='hero-section', style={
             'position': 'relative',
             'height': '500px',
             'marginBottom': '3rem'

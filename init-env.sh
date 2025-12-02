@@ -123,21 +123,22 @@ POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 POSTGRES_DB=aigualba
 
 # Backend Configuration
-DATABASE_URL=postgresql://aigualba_user:$POSTGRES_PASSWORD@db:5432/aigualba
+$(if [[ $ENV_TYPE == "development" ]]; then
+echo "DATABASE_URL=postgresql://devuser:$DEV_POSTGRES_PASSWORD@db:5432/aigualba_db"
+else
+echo "DATABASE_URL=postgresql://aigualba_user:$POSTGRES_PASSWORD@db:5432/aigualba"
+fi)
 
 # Frontend Configuration  
 BACKEND_URL=http://backend:$BACKEND_PORT
 
 # Development Environment Variables (only needed if running database migrations or dev setup)
+DEV_POSTGRES_USER=devuser
+DEV_POSTGRES_PASSWORD=$DEV_POSTGRES_PASSWORD
+DEV_POSTGRES_DB=aigualba_db
 $(if [[ $ENV_TYPE == "development" ]]; then
-echo "DEV_POSTGRES_USER=devuser"
-echo "DEV_POSTGRES_PASSWORD=$DEV_POSTGRES_PASSWORD"
-echo "DEV_POSTGRES_DB=aigualba_db"
 echo "DEV_DATABASE_URL=postgresql://devuser:$DEV_POSTGRES_PASSWORD@db:5432/aigualba_db"
 else
-echo "# DEV_POSTGRES_USER=devuser"
-echo "# DEV_POSTGRES_PASSWORD=$DEV_POSTGRES_PASSWORD"
-echo "# DEV_POSTGRES_DB=aigualba_db"
 echo "# DEV_DATABASE_URL=postgresql://devuser:$DEV_POSTGRES_PASSWORD@db:5432/aigualba_db"
 fi)
 

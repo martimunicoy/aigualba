@@ -195,6 +195,40 @@ body {
     .parameters-info-card {
         min-width: auto;
     }
+    
+    /* Remove padding from max-width 1200px containers on mobile */
+    [style*="max-width: 1200px"],
+    .navbar-container,
+    .info-section,
+    .live-data-section,
+    .submit-main-container,
+    .instructions-section {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    
+    /* Mobile date filter alignment fixes */
+    div[style*="display: inline-block"][style*="marginRight: 2rem"],
+    div[style*="display: inline-block"] {
+        display: block !important;
+        margin-right: 0 !important;
+        margin-bottom: 1rem !important;
+        width: 100% !important;
+    }
+    
+    /* Date picker container alignment */
+    .DateInput,
+    .DateInput_input {
+        width: 100% !important;
+        max-width: none !important;
+    }
+    
+    /* Date filter labels */
+    label[style*="marginRight: 0.5rem"] {
+        margin-bottom: 0.5rem !important;
+        display: block !important;
+        font-weight: bold !important;
+    }
 }
 
 /* Hero button hover effects */
@@ -1311,5 +1345,275 @@ border-radius: 0;
     .samples-table tbody td a {
         padding: 0.3rem 0.6rem !important;
         font-size: 0.8rem !important;
+    }
+}
+
+/* Mobile responsive fixes for visualize page controls */
+@media (max-width: 480px) {
+    /* Visualize controls container - stack vertically on mobile */
+    .visualize-controls-flex {
+        flex-direction: column !important;
+        gap: 1rem !important;
+    }
+    
+    /* Individual control items - full width on mobile */
+    .visualize-control-item {
+        flex: none !important;
+        margin-right: 0 !important;
+        width: 100% !important;
+    }
+    
+    /* Ensure dropdowns take full width */
+    .visualize-control-item .Select-control {
+        width: 100% !important;
+    }
+    
+    /* Submit form mobile responsive - reduce field width */
+    .submit-form-fields {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+    
+    /* Admin Panel Mobile Responsive Styles */
+    
+    /* Admin page background container - reduce padding */
+    div[style*="backgroundColor: #f8f9fa"][style*="minHeight: 100vh"] {
+        padding: 1rem !important;
+    }
+    
+    /* Admin login form - adjust padding and max width */
+    #login-form > div {
+        max-width: none !important;
+    }
+    
+    /* Admin login form title - smaller on mobile */
+    #login-form h1 {
+        font-size: 2rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    /* Admin login form inputs - better mobile spacing */
+    #login-username, #login-password {
+        font-size: 16px !important; /* Prevents zoom on iOS */
+    }
+    
+    /* Admin tabs - stack vertically on mobile */
+    .admin-tabs {
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+    }
+    
+    .admin-tab {
+        width: 100% !important;
+        text-align: center !important;
+        border-radius: 6px !important;
+        border-bottom: none !important;
+        border-left: 4px solid transparent !important;
+    }
+    
+    .admin-tab.active-tab {
+        border-bottom: none !important;
+        border-left: 4px solid #3498db !important;
+    }
+    
+    /* Admin dashboard header - stack welcome message and logout button */
+    #admin-dashboard > div:first-child > div:first-child > div {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+    
+    #logout-btn {
+        margin-left: 0 !important;
+        margin-top: 1rem !important;
+        width: auto !important;
+    }
+    
+    /* Admin statistics grid - single column on mobile */
+    .admin-stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+    
+    .admin-stat-card {
+        padding: 1rem !important;
+    }
+    
+    .admin-stat-number {
+        font-size: 2rem !important;
+    }
+    
+    /* Admin action buttons container - better mobile layout */
+    div:has(#select-all-btn) {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+    }
+    
+    /* First row - select all button */
+    #select-all-btn {
+        width: 100% !important;
+        margin: 0 !important;
+        order: -1 !important;
+    }
+    
+    /* Second row - action buttons */
+    div:has(#select-all-btn) > button:not(#select-all-btn) {
+        flex: 1 1 calc(50% - 0.375rem) !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        text-align: center !important;
+        font-size: 0.8rem !important;
+        padding: 8px 6px !important;
+    }
+    
+    /* Create a wrapper effect for the action buttons */
+    #bulk-validate-btn, #bulk-unvalidate-btn, #bulk-delete-btn, #refresh-samples-btn {
+        flex-grow: 1 !important;
+        flex-basis: calc(50% - 0.375rem) !important;
+    }
+    
+    /* DataTable mobile styles */
+    .admin-samples-table .dash-table-container {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    
+    /* DataTable cells - better mobile sizing */
+    .admin-samples-table .dash-spreadsheet-container .dash-spreadsheet-inner table {
+        min-width: 600px !important;
+    }
+    
+    .admin-samples-table .dash-spreadsheet-container .dash-spreadsheet-inner th,
+    .admin-samples-table .dash-spreadsheet-container .dash-spreadsheet-inner td {
+        font-size: 0.8rem !important;
+        padding: 8px !important;
+        white-space: nowrap !important;
+    }
+    
+    /* Charts mobile responsiveness - ensure bars stay in one line */
+    #visits-chart-container > div[style*="display: flex"],
+    #visits-monthly-chart-container > div[style*="display: flex"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        align-items: flex-end !important;
+        justify-content: flex-start !important;
+        padding: 1rem 0.5rem !important;
+        gap: 8px !important;
+    }
+    
+    /* Individual chart bars - enforce fixed width and prevent expansion */
+    #visits-chart-container > div[style*="display: flex"] > div,
+    #visits-monthly-chart-container > div[style*="display: flex"] > div {
+        width: 45px !important;
+        min-width: 45px !important;
+        max-width: 45px !important;
+        flex: none !important;
+        flex-shrink: 0 !important;
+        flex-grow: 0 !important;
+    }
+    
+    /* Chart text labels - smaller font for mobile */
+    #visits-chart-container div[style*="fontSize: 0.8rem"],
+    #visits-monthly-chart-container div[style*="fontSize: 0.8rem"] {
+        font-size: 0.65rem !important;
+    }
+    
+    #visits-chart-container div[style*="fontSize: 0.7rem"],
+    #visits-monthly-chart-container div[style*="fontSize: 0.7rem"] {
+        font-size: 0.6rem !important;
+    }
+    
+    /* Logs tab mobile responsiveness */
+    
+    /* Logs container - better mobile spacing */
+
+    
+    /* Filters container - stack vertically */
+    div[style*="display: inline-block"]:has(#service-filter),
+    div[style*="display: inline-block"]:has(#log-level-filter) {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 0 1rem 0 !important;
+    }
+    
+    /* Filter labels - better mobile styling */
+    div:has(#service-filter) label,
+    div:has(#log-level-filter) label {
+        display: block !important;
+        margin-bottom: 0.5rem !important;
+        font-weight: 600 !important;
+        color: #2c3e50 !important;
+    }
+    
+    /* Dropdown components - full width and better touch targets */
+    #service-filter, #log-level-filter {
+        width: 100% !important;
+    }
+    
+    #service-filter > div, #log-level-filter > div {
+        width: 100% !important;
+        min-width: none !important;
+        min-height: 44px !important;
+    }
+    
+    /* Logs content area mobile optimization */
+    #logs-content {
+        margin-top: 1rem !important;
+        border-radius: 6px !important;
+        overflow: hidden !important;
+    }
+    
+    #logs-content pre {
+        font-size: 0.7rem !important;
+        padding: 0.75rem !important;
+        max-height: 350px !important;
+        line-height: 1.3 !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    
+    /* Loading message mobile styling */
+    #logs-content p {
+        padding: 1.5rem 1rem !important;
+        font-size: 0.9rem !important;
+    }
+    
+    /* Modals mobile responsiveness */
+    #delete-confirmation-modal > div > div {
+        margin: 1rem !important;
+        padding: 1.5rem !important;
+        max-width: none !important;
+    }
+    
+    #edit-sample-modal > div > div {
+        margin: 1rem !important;
+        padding: 1.5rem !important;
+        max-width: none !important;
+        max-height: 90vh !important;
+    }
+    
+    /* Modal buttons - stack vertically */
+    #delete-confirmation-modal div[style*="textAlign: right"] {
+        text-align: center !important;
+    }
+    
+    #edit-sample-modal div[style*="textAlign: right"] {
+        text-align: center !important;
+    }
+    
+    #delete-confirmation-modal div[style*="textAlign: right"] > button,
+    #edit-sample-modal div[style*="textAlign: right"] > button {
+        display: block !important;
+        width: 100% !important;
+        margin: 0.5rem 0 !important;
+    }
+    
+    /* Location breakdown mobile adjustments */
+    div:has(.admin-stat-card) + div div[style*="display: flex"] {
+        flex-direction: column !important;
+        align-items: stretch !important;
     }
 }

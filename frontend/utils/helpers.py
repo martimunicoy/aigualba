@@ -1093,7 +1093,7 @@ def create_samples_by_location_chart(samples):
     """Create a bar chart showing samples count by location"""
     if not HAS_PLOTLY or not samples:
         return html.Div([
-            html.P("Gràfic no disponible", style={'textAlign': 'center', 'color': '#6c757d'})
+            html.P("Distribució de mostres per ubicació no disponible", style={'textAlign': 'center', 'color': '#6c757d'})
         ])
     
     # Count samples by location
@@ -1159,7 +1159,7 @@ def create_samples_by_month_chart(samples):
     """Create a bar chart showing samples count by month for the last 12 months"""
     if not HAS_PLOTLY or not samples:
         return html.Div([
-            html.P("Gràfic no disponible", style={'textAlign': 'center', 'color': '#6c757d'})
+            html.P("Distribució de mostres per mes no disponible", style={'textAlign': 'center', 'color': '#6c757d'})
         ])
     
     # Calculate date range (last 12 months from start of month)

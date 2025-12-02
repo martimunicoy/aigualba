@@ -989,7 +989,7 @@ def update_chart(selected_parameter, selected_location):
         if not selected_parameter or not selected_location:
             empty_fig = go.Figure()
             empty_fig.add_annotation(
-                text="Selecciona un paràmetre i punt de mostreig de la llista per generar el gràfic",
+                text="Res a mostrar",
                 xref="paper", yref="paper",
                 x=0.5, y=0.5, xanchor='center', yanchor='middle',
                 showarrow=False, font=dict(size=16, color="gray")
@@ -999,7 +999,7 @@ def update_chart(selected_parameter, selected_location):
                 yaxis=dict(visible=False),
                 plot_bgcolor='white'
             )
-            return empty_fig, "Selecciona un paràmetre i punt de mostreig", None
+            return empty_fig, "Selecciona un paràmetre i punt de mostreig de la llista per generar el gràfic", None
         
         # Fetch samples
         samples = fetch_samples(BACKEND_URL)

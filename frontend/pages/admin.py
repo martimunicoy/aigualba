@@ -17,7 +17,11 @@ def create_layout():
             # Login form (shown when not authenticated)
             html.Div([
                 html.Div([
-                    html.H1("Administració d'AiGualba", style={
+                    html.H1([
+                        "Administració d'",
+                        html.Span("AiGua", style={'color': '#3498db'}),
+                        "lba"
+                    ], style={
                         'textAlign': 'center',
                         'color': '#2c3e50',
                         'marginBottom': '2rem'
@@ -43,7 +47,6 @@ def create_layout():
                             value='',
                             n_submit=0,
                             style={
-                                'width': '100%',
                                 'padding': '12px',
                                 'border': '1px solid #ddd',
                                 'borderRadius': '4px',
@@ -67,7 +70,6 @@ def create_layout():
                             value='',
                             n_submit=0,
                             style={
-                                'width': '100%',
                                 'padding': '12px',
                                 'border': '1px solid #ddd',
                                 'borderRadius': '4px',

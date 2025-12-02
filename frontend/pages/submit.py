@@ -38,9 +38,9 @@ def create_section(title, fields, note=None):
     return html.Div([
         html.H3(title, 
                 style={'color': '#2c3e50', 'marginBottom': '1.5rem', 'textAlign': 'center'}),
-        html.Div(fields, style={
+        html.Div(fields, className='submit-form-fields', style={
             'display': 'grid',
-            'gridTemplateColumns': 'repeat(auto-fit, minmax(300px, 1fr))',
+            'gridTemplateColumns': 'repeat(auto-fit, minmax(400px, 1fr))',
             'gap': '1rem',
             'gridAutoRows': 'auto'
         }),
@@ -143,7 +143,7 @@ def create_submit_page():
                 create_input_field("recompte-escherichia-coli", "E. coli (NPM/100 ml)", placeholder="ex. 0", min_val=0, step=0.01),
                 create_input_field("recompte-enterococ", "Enterococ (NPM/100 ml)", placeholder="ex. 0", min_val=0, step=0.01),
                 create_input_field("recompte-microorganismes-aerobis-22c", "Microorganismes aeròbics a 22°C (ufc/1 ml)", placeholder="ex. 100", min_val=0, step=1),
-                create_input_field("recompte-coliformes-totals", "Coliformes Totals (NMP/100 ml)", placeholder="ex. 0", min_val=0, step=0.01)
+                create_input_field("recompte-coliformes-totals", "Coliformes totals (NMP/100 ml)", placeholder="ex. 0", min_val=0, step=0.01)
             ]),
             
             # Acid parameters

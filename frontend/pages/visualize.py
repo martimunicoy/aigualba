@@ -71,7 +71,7 @@ def create_visualize_page():
                             placeholder="Selecciona un paràmetre...",
                             style={'fontSize': '1rem'}
                         )
-                    ], style={'flex': '1', 'marginRight': '1rem'}),
+                    ], className='visualize-control-item', style={'flex': '1', 'marginRight': '1rem'}),
                     
                     # Location selector
                     html.Div([
@@ -83,8 +83,8 @@ def create_visualize_page():
                             placeholder="Selecciona un punt de mostreig...",
                             style={'fontSize': '1rem'}
                         )
-                    ], style={'flex': '1'})
-                ], style={'display': 'flex', 'gap': '1rem', 'marginBottom': '1rem'})
+                    ], className='visualize-control-item', style={'flex': '1'})
+                ], className='visualize-controls-flex', style={'display': 'flex', 'gap': '1rem', 'marginBottom': '1rem'})
             ], style={
                 'backgroundColor': 'white', 
                 'margin': '1rem 0', 

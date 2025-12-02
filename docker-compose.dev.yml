@@ -9,6 +9,7 @@ services:
     volumes:
       - ./db/init.dev.sql:/docker-entrypoint-initdb.d/01-init-aigualba.sql:ro
       - ./db/init-keycloak.sql:/docker-entrypoint-initdb.d/02-init-keycloak.sql:ro
+      - ./db/03-update-keycloak-password.sql:/docker-entrypoint-initdb.d/03-update-keycloak-password.sql:ro
       - db_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
@@ -23,7 +24,7 @@ services:
     depends_on:
       - db
     environment:
-      DATABASE_URL: ${DEV_DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL}
     ports:
       - "8001:8000"
     volumes:
@@ -38,10 +39,11 @@ services:
       BACKEND_URL: http://backend:8000
       DASH_DEBUG: 1
       KEYCLOAK_URL: http://localhost:8080
-      KEYCLOAK_REALM: aigualba
-      KEYCLOAK_CLIENT_ID: aigualba-frontend
-      KEYCLOAK_CLIENT_SECRET: aigualba-frontend-secret-123
-      KEYCLOAK_REDIRECT_URI: http://localhost:8050/admin
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_REDIRECT_URI: ${KEYCLOAK_REDIRECT_URI}
     volumes:
       - ./frontend:/app
     ports:
@@ -62,11 +64,11 @@ services:
     container_name: aigualba_keycloak_dev
     environment:
       - KEYCLOAK_ADMIN=admin
-      - KEYCLOAK_ADMIN_PASSWORD=admin123
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
       - KC_DB=postgres
       - KC_DB_URL=jdbc:postgresql://db:5432/keycloak
-      - KC_DB_USERNAME=keycloak_user
-      - KC_DB_PASSWORD=keycloak_pass
+      - KC_DB_USERNAME=${KC_DB_USERNAME}
+      - KC_DB_PASSWORD=${KC_DB_PASSWORD}
       - KC_HOSTNAME=localhost
       - KC_HOSTNAME_PORT=8080
       - KC_HTTP_ENABLED=true
