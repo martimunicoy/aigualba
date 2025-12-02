@@ -4,6 +4,10 @@
 .env.production
 envs/
 
+# Keycloak configuration with secrets (generated from template)
+keycloak/realm-import.json
+keycloak/realm-import.json.backup
+
 # Python cache and bytecode
 *.pyc
 *.pyo

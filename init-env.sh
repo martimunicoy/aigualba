@@ -168,25 +168,16 @@ EOF
 echo -e "${GREEN}✅ .env file created successfully!${NC}"
 echo
 
-# Update Keycloak realm configuration with generated client secret
-echo -e "${YELLOW}🔧 Updating Keycloak realm configuration...${NC}"
-if [ -f "keycloak/realm-import.json" ]; then
-    # Create backup of original realm file
-    cp keycloak/realm-import.json keycloak/realm-import.json.backup
-    
-    # Update the client secret in realm-import.json
-    if command -v sed &> /dev/null; then
-        # Use sed to replace the client secret
-        sed -i.bak "s/\"secret\": \"[^\"]*\"/\"secret\": \"$KEYCLOAK_CLIENT_SECRET\"/g" keycloak/realm-import.json
-        rm keycloak/realm-import.json.bak 2>/dev/null || true
-        echo -e "${GREEN}✅ Keycloak realm configuration updated with generated client secret${NC}"
-    else
-        echo -e "${YELLOW}⚠️  Warning: sed not available, please manually update client secret in keycloak/realm-import.json${NC}"
-        echo -e "${YELLOW}   Replace 'aigualba-frontend-secret-123' with: $KEYCLOAK_CLIENT_SECRET${NC}"
-    fi
+# Generate Keycloak realm configuration from template
+echo -e "${YELLOW}🔧 Generating Keycloak realm configuration from template...${NC}"
+if [ -f "keycloak/realm-import.json.template" ]; then
+    # Generate realm-import.json from template
+    sed "s/{{KEYCLOAK_CLIENT_SECRET}}/$KEYCLOAK_CLIENT_SECRET/g" keycloak/realm-import.json.template > keycloak/realm-import.json
+    echo -e "${GREEN}✅ Keycloak realm configuration generated with secure client secret${NC}"
 else
-    echo -e "${RED}❌ Error: keycloak/realm-import.json not found${NC}"
-    echo -e "${YELLOW}   Please ensure you're in the correct directory${NC}"
+    echo -e "${RED}❌ Error: keycloak/realm-import.json.template not found${NC}"
+    echo -e "${YELLOW}   Please ensure the template file exists${NC}"
+    exit 1
 fi
 
 # Create database password update script
@@ -227,6 +218,8 @@ echo
 echo -e "${YELLOW}📝 Important Notes${NC}"
 echo "=================="
 echo "• Keep your .env file secure and never commit it to version control"
+echo "• The keycloak/realm-import.json file contains secrets and is automatically generated"
+echo "• Never commit keycloak/realm-import.json - only the .template version should be in git"
 echo "• Backup your .env file in a secure location"
 echo "• For production, ensure HTTPS is properly configured"
 echo "• Change the Keycloak admin password after first login if needed"
