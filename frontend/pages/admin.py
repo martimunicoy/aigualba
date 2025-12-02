@@ -124,8 +124,10 @@ def create_layout():
                         'marginBottom': '1rem'
                     }),
                     html.Div([
-                        html.Span("Benvingut,\u00A0", style={'color': '#7f8c8d'}),
-                        html.Span(id='admin-username', style={'fontWeight': 'bold', 'color': '#2c3e50'}),
+                        html.Div([
+                            html.Span("Benvingut,\u00A0", style={'color': '#7f8c8d'}),
+                            html.Span(id='admin-username', style={'fontWeight': 'bold', 'color': '#2c3e50'}),
+                        ], style={'display': 'flex', 'alignItems': 'center'}),
                         html.Button(
                             [
                                 html.I(className="fas fa-sign-out-alt", style={'marginRight': '8px'}),
@@ -141,12 +143,11 @@ def create_layout():
                                 'borderRadius': '4px',
                                 'fontSize': '0.9rem',
                                 'cursor': 'pointer',
-                                'marginLeft': '2rem',
                                 'boxShadow': '0 2px 4px rgba(0,0,0,0.2)',
                                 'transition': 'all 0.2s ease'
                             }
                         )
-                    ], style={'display': 'flex', 'alignItems': 'center', 'marginBottom': '2rem'})
+                    ], style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'marginBottom': '2rem'})
                 ], style={'marginBottom': '2rem'}),
                 
                 # Admin navigation tabs

@@ -964,14 +964,24 @@ def create_sample_details(sample, referrer="/browse"):
         ('Punt de Mostreig', sample.get('punt_mostreig', 'N/A')),
     ]
     
+    # Helper function to format values with specific decimal places
+    def format_value(value, decimals):
+        if value is None or value == '':
+            return None
+        try:
+            float_val = float(value)
+            return f"{float_val:.{decimals}f}"
+        except (ValueError, TypeError):
+            return value
+    
     physical_params = [
-        ('Temperatura (°C)', sample.get('temperatura')),
-        ('pH', sample.get('ph')),
-        ('Conductivitat a 20°C (μS/cm)', sample.get('conductivitat_20c')),
-        ('Terbolesa (NTU)', sample.get('terbolesa')),
-        ('Color', sample.get('color')),
-        ('Olor', sample.get('olor')),
-        ('Sabor', sample.get('sabor')),
+        ('Temperatura (°C)', format_value(sample.get('temperatura'), 1)),
+        ('pH', format_value(sample.get('ph'), 1)),
+        ('Conductivitat a 20°C (μS/cm)', format_value(sample.get('conductivitat_20c'), 0)),
+        ('Terbolesa (NTU)', format_value(sample.get('terbolesa'), 1)),
+        ('Color', format_value(sample.get('color'), 0)),
+        ('Olor', format_value(sample.get('olor'), 0)),
+        ('Sabor', format_value(sample.get('sabor'), 0)),
     ]
     
     # Calculate derived values
@@ -979,22 +989,22 @@ def create_sample_details(sample, referrer="/browse"):
     suma_haloacetics_detail = calculate_suma_haloacetics(sample)
     
     chemical_params = [
-        ('Clor Lliure (mg/L)', sample.get('clor_lliure')),
-        ('Clor Total (mg/L)', sample.get('clor_total')),
-        ('Clor Combinat Residual (mg/L)', f"{clor_combinat_detail:.4f}" if clor_combinat_detail is not None else None),
-        ('Àcid Monocloroacètic (μg/L)', sample.get('acid_monocloroacetic')),
-        ('Àcid Dicloroacètic (μg/L)', sample.get('acid_dicloroacetic')),
-        ('Àcid Tricloroacètic (μg/L)', sample.get('acid_tricloroacetic')),
-        ('Àcid Monobromoacètic (μg/L)', sample.get('acid_monobromoacetic')),
-        ('Àcid Dibromoacètic (μg/L)', sample.get('acid_dibromoacetic')),
-        ('Suma 5 Haloacètics (μg/L)', f"{suma_haloacetics_detail:.2f}" if suma_haloacetics_detail is not None else None),
+        ('Clor Lliure (mg/L)', format_value(sample.get('clor_lliure'), 2)),
+        ('Clor Total (mg/L)', format_value(sample.get('clor_total'), 2)),
+        ('Clor Combinat Residual (mg/L)', format_value(clor_combinat_detail, 2)),
+        ('Àcid Monocloroacètic (μg/L)', format_value(sample.get('acid_monocloroacetic'), 0)),
+        ('Àcid Dicloroacètic (μg/L)', format_value(sample.get('acid_dicloroacetic'), 0)),
+        ('Àcid Tricloroacètic (μg/L)', format_value(sample.get('acid_tricloroacetic'), 0)),
+        ('Àcid Monobromoacètic (μg/L)', format_value(sample.get('acid_monobromoacetic'), 0)),
+        ('Àcid Dibromoacètic (μg/L)', format_value(sample.get('acid_dibromoacetic'), 0)),
+        ('Suma 5 Haloacètics (μg/L)', format_value(suma_haloacetics_detail, 0)),
     ]
     
     biological_params = [
-        ('Escherichia coli (UFC/100mL)', sample.get('recompte_escherichia_coli')),
-        ('Enterococs (UFC/100mL)', sample.get('recompte_enterococ')),
-        ('Microorganismes aerobis 22°C (UFC/mL)', sample.get('recompte_microorganismes_aerobis_22c')),
-        ('Coliformes totals (UFC/100mL)', sample.get('recompte_coliformes_totals')),
+        ('Escherichia coli (UFC/100mL)', format_value(sample.get('recompte_escherichia_coli'), 0)),
+        ('Enterococs (UFC/100mL)', format_value(sample.get('recompte_enterococ'), 0)),
+        ('Microorganismes aerobis 22°C (UFC/mL)', format_value(sample.get('recompte_microorganismes_aerobis_22c'), 0)),
+        ('Coliformes totals (UFC/100mL)', format_value(sample.get('recompte_coliformes_totals'), 0)),
     ]
     
     def create_parameter_bar(parameter_key, value):
@@ -1036,13 +1046,32 @@ def create_sample_details(sample, referrer="/browse"):
             else:
                 dot_color = '#dc3545'  # Red - exceeds threshold
         
-        # Format value display
-        if parameter_key == 'ph':
-            value_display = f"{value:.1f}"
-        elif 'clor' in parameter_key:
-            value_display = f"{value:.3f}"
-        else:
-            value_display = f"{value:.2f}"
+        # Format value display with specific decimal places
+        decimal_rules = {
+            'ph': 1,
+            'conductivitat_20c': 1,
+            'terbolesa': 1,
+            'temperatura': 1,
+            'color': 0,
+            'olor': 0,
+            'sabor': 0,
+            'acid_monocloroacetic': 0,
+            'acid_dicloroacetic': 0,
+            'acid_tricloroacetic': 0,
+            'acid_monobromoacetic': 0,
+            'acid_dibromoacetic': 0,
+            'suma_haloacetics': 0,
+            'recompte_microorganismes_aerobis_22c': 0,
+            'recompte_coliformes_totals': 0,
+            'recompte_escherichia_coli': 0,
+            'recompte_enterococ': 0,
+            'clor_lliure': 2,
+            'clor_total': 2,
+            'clor_combinat_residual': 2
+        }
+        
+        decimals = decimal_rules.get(parameter_key, 2)  # Default to 2 decimals
+        value_display = f"{value:.{decimals}f}"
         
         return html.Div([
             html.Div([
