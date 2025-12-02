@@ -1348,6 +1348,29 @@ border-radius: 0;
     }
 }
 
+/* Chart containers - enable horizontal scrolling for all screen sizes */
+#visits-chart-container,
+#visits-monthly-chart-container {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    width: 100% !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+/* Chart flex containers - maintain original sizing but enable scrolling */
+#visits-chart-container > div[style*="display: flex"],
+#visits-monthly-chart-container > div[style*="display: flex"] {
+    min-width: max-content !important;
+    flex-wrap: nowrap !important;
+    width: auto !important;
+}
+
+/* Individual chart bars - keep original sizes */
+#visits-chart-container > div[style*="display: flex"] > div,
+#visits-monthly-chart-container > div[style*="display: flex"] > div {
+    flex-shrink: 0 !important;
+}
+
 /* Mobile responsive fixes for visualize page controls */
 @media (max-width: 480px) {
     /* Visualize controls container - stack vertically on mobile */
@@ -1490,32 +1513,39 @@ border-radius: 0;
         white-space: nowrap !important;
     }
     
-    /* Charts mobile responsiveness - ensure bars stay in one line */
+
+    
+    /* Charts mobile - ensure proper horizontal layout and scrolling */
+    #visits-chart-container,
+    #visits-monthly-chart-container {
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    
+    /* Chart flex containers - force horizontal layout on mobile */
     #visits-chart-container > div[style*="display: flex"],
     #visits-monthly-chart-container > div[style*="display: flex"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch !important;
+        min-width: max-content !important;
         align-items: flex-end !important;
         justify-content: flex-start !important;
-        padding: 1rem 0.5rem !important;
-        gap: 8px !important;
     }
     
-    /* Individual chart bars - enforce fixed width and prevent expansion */
+    /* Individual chart bars - maintain regular width and prevent wrapping */
     #visits-chart-container > div[style*="display: flex"] > div,
     #visits-monthly-chart-container > div[style*="display: flex"] > div {
-        width: 45px !important;
-        min-width: 45px !important;
-        max-width: 45px !important;
-        flex: none !important;
         flex-shrink: 0 !important;
         flex-grow: 0 !important;
+        width: 60px !important;
+        min-width: 60px !important;
+        display: flex !important;
+        flex-direction: column !important;
     }
     
-    /* Chart text labels - smaller font for mobile */
+    /* Chart text labels - smaller font for mobile readability */
     #visits-chart-container div[style*="fontSize: 0.8rem"],
     #visits-monthly-chart-container div[style*="fontSize: 0.8rem"] {
         font-size: 0.65rem !important;
