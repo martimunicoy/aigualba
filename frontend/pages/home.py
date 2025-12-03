@@ -98,7 +98,7 @@ def create_home_page():
                                    'cursor': 'pointer',
                                    'boxShadow': '0 4px 8px rgba(0,0,0,0.3)'
                                })
-                ], className='hero-buttons', style={'textAlign': 'center', 'marginTop': '2rem'})
+                ], className='hero-buttons', style={'textAlign': 'center'})
             ], className='hero-overlay', style={
                 'position': 'absolute',
                 'top': '0',
@@ -165,11 +165,13 @@ def create_home_page():
                         'lineHeight': '1.6'
                     }),
                     html.Ul([
-                        html.Li("Nivell de pH - Equilibri àcid/alcalí"),
-                        html.Li("Temperatura - Lectures de temperatura de l'aigua"),
-                        html.Li("Turbiditat - Mesures de claredat de l'aigua"),
-                        html.Li("Oxigen dissolt"),
-                        html.Li("Composició química")
+                        html.Li("Nivell de pH."),
+                        html.Li("Temperatura."),
+                        html.Li("Controls de sabor, olor i color."),
+                        html.Li("Conductivitat i terbolesa."),
+                        html.Li("Paràmetres biològics."),
+                        html.Li("Concentració de clor."),
+                        html.Li("Concentració d'àcids haloacètics.")
                     ], style={
                         'fontSize': '0.95rem',
                         'color': '#34495e',
@@ -197,10 +199,16 @@ def create_home_page():
                         'lineHeight': '1.6'
                     }),
                     html.Ul([
-                        html.Li("Consulta les dades en temps real"),
-                        html.Li("Aporta noves mesures des del teu punt de recollida"),
-                        html.Li("Reporta incidències o anomalies"),
-                        html.Li("Col·labora amb la comunitat científica local")
+                        html.Li("Consulta les últimes mostres d'aigua recollides."),
+                        html.Li("Explora les dades històriques i les tendències de qualitat."),
+                        html.Li("Comprova que els paràmetres compleixen els estàndards de seguretat."),
+                        html.Li("Col·labora aportant noves mostres d'aigua."),
+                        html.Li(["Reporta incidències o anomalies. ",
+                                 html.Span("Pròximament", style={'color': '#e67e22', 'fontStyle': 'italic'})
+                        ]),
+                        html.Li(["Rep notificacions al teu correu electrònic. ",
+                                 html.Span("Pròximament", style={'color': '#e67e22', 'fontStyle': 'italic'})
+                        ])
                     ], style={
                         'fontSize': '0.95rem',
                         'color': '#34495e',
@@ -219,11 +227,10 @@ def create_home_page():
                 'maxWidth': '1000px',
                 'margin': '0 auto',
                 'padding': '0 2rem'
-            })
+            }, className='info-section')
         ], style={
             'backgroundColor': 'white',
             'margin': '2rem auto',
-            'padding': '3rem 0',
             'borderRadius': '10px',
             'boxShadow': '0 4px 15px rgba(0,0,0,0.1)',
             'maxWidth': '1200px'

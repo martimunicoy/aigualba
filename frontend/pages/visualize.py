@@ -24,10 +24,10 @@ def create_visualize_page():
                 html.H3("Com utilitzar aquesta pàgina", 
                         style={'color': '#2c3e50', 'marginBottom': '1.5rem', 'textAlign': 'center'}),
                 html.Ul([
-                    html.Li("Selecciona el paràmetre que vols visualitzar des del menú desplegable"),
-                    html.Li("Escull el punt de mostreig per filtrar les dades"),
-                    html.Li("Veu l'evolució temporal del paràmetre seleccionat"),
-                    html.Li("Interactua amb el gràfic per fer zoom, veure valors específics i més")
+                    html.Li("Selecciona el paràmetre que vols visualitzar des del menú desplegable."),
+                    html.Li("Escull el punt de mostreig per filtrar les dades."),
+                    html.Li("Veu l'evolució temporal del paràmetre seleccionat."),
+                    html.Li("Interactua amb el gràfic per fer zoom, veure valors específics i més.")
                 ], style={'fontSize': '1rem', 'lineHeight': '1.6', 'color': '#34495e'})
             ], style={
                 'backgroundColor': 'white', 

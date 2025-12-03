@@ -26,10 +26,11 @@ def create_browse_page():
                 html.H3("Com utilitzar aquesta pàgina", 
                         style={'color': '#2c3e50', 'marginBottom': '1.5rem', 'textAlign': 'center'}),
                 html.Ul([
-                    html.Li("Navega per totes les mostres d'aigua recollides"),
-                    html.Li("Fes clic a 'Veure detalls' per veure la informació completa de cada mostra"),
-                    html.Li("Les mostres es mostren ordenades per data de recollida"),
-                    html.Li("Utilitza els filtres per trobar mostres específiques")
+                    html.Li("Navega per totes les mostres d'aigua recollides."),
+                    html.Li("Fes clic a 'Veure detalls' per veure la informació completa de cada mostra."),
+                    html.Li("Les mostres es mostren ordenades per data de recollida."),
+                    html.Li("Utilitza els filtres per trobar mostres específiques."),
+                    html.Li("Exporta les dades filtrades a un fitxer CSV per a anàlisis addicionals.")
                 ], style={'fontSize': '1rem', 'lineHeight': '1.6', 'color': '#34495e'})
             ], style={
                 'backgroundColor': 'white', 

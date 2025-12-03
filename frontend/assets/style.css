@@ -231,6 +231,23 @@ body {
     }
 }
 
+/* Small-screen tweak: align hero primary button left under 390px */
+@media (max-width: 390px) {
+    .hero-buttons {
+        text-align: left !important;
+    }
+    .hero-btn-primary {
+        padding: 0.25rem !important;
+        font-size: 0.9rem !important;
+        margin-right: 5px !important;
+    }
+    .hero-btn-secondary {
+        padding: 0.25rem !important;
+        font-size: 0.9rem !important;
+        margin-right: 0px !important;
+    }
+}
+
 /* Hero button hover effects */
 .hero-btn-primary:hover {
     background-color: #c0392b !important;
@@ -508,7 +525,6 @@ body {
 
 .hero-buttons {
     text-align: center;
-    margin-top: 2rem;
 }
 
 .hero-btn-primary {
@@ -1345,6 +1361,23 @@ border-radius: 0;
     .samples-table tbody td a {
         padding: 0.3rem 0.6rem !important;
         font-size: 0.8rem !important;
+    }
+}
+
+@media (max-width: 420px) {
+    .samples-table {
+        font-size: 0.7rem;
+    }
+    
+    .samples-table thead th,
+    .samples-table tbody td {
+        font-size: 0.7rem;
+        padding: 0.5rem !important;
+    }
+    
+    .samples-table tbody td a {
+        padding: 0.3rem 0.6rem !important;
+        font-size: 0.7rem !important;
     }
 }
 

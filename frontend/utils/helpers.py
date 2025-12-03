@@ -197,7 +197,22 @@ def fetch_latest_sample_any_location(backend_url):
         sorted_samples = sorted(samples,
                                 key=lambda x: x.get('data', ''), 
                                 reverse=True)
-        return sorted_samples[0] if sorted_samples else None
+        
+        # If there is a tie on date, get the one with more parameters reported
+        selected_sample = sorted_samples[0]
+        selected_sample_non_null_parameters = sum(1 for v in selected_sample.values() if v not in [None, ''])
+        for sample in sorted_samples[1:]:
+            if sample == selected_sample:
+                continue
+            
+            if sample.get('data') == selected_sample.get('data'):
+
+                count_next = sum(1 for v in sample.values() if v not in [None, ''])
+                if count_next > selected_sample_non_null_parameters:
+                    selected_sample = sample
+                    selected_sample_non_null_parameters = count_next
+
+        return selected_sample if sorted_samples else None
     except Exception as e:
         print(f"Error fetching latest sample from any location: {e}")
         return None
@@ -933,7 +948,7 @@ def create_samples_table(samples, current_page=1, page_size=10, sort_column='dat
         
         # Controls
         html.Div([
-            html.Div(pagination_controls, style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center'}),
+            html.Div(pagination_controls, className='pagination-controls', style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center'}),
             html.Div(page_size_controls, style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'marginTop': '1rem'})
         ])
     ])
@@ -1284,12 +1299,7 @@ def create_samples_by_month_chart(samples):
     # Calculate date range (last 12 months from start of month)
     today = datetime.now()
     twelve_months_ago = today.replace(day=1) - timedelta(days=365)
-    
-    # Debug: Print sample dates and date range
-    print(f"Date range: {twelve_months_ago.strftime('%Y-%m-%d')} to {today.strftime('%Y-%m-%d')}")
-    for sample in samples[:3]:  # Print first 3 samples for debugging
-        print(f"Sample date: {sample.get('data')}")
-    
+        
     # Count samples by month
     monthly_counts = {}
     

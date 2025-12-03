@@ -71,12 +71,12 @@ def create_submit_page():
                 html.H3("Com utilitzar aquesta pàgina", 
                         style={'color': '#2c3e50', 'marginBottom': '1.5rem', 'textAlign': 'center'}),
                 html.Ul([
-                    html.Li("Assegura't que les mesures siguin precises i recents"),
-                    html.Li("Utilitza equips calibrats per obtenir lectures fiables"),
-                    html.Li("Els camps marcats amb * són obligatoris"),
-                    html.Li("Has d'introduir almenys un paràmetre per poder enviar la mostra"),
-                    html.Li("El clor combinat es calcula automàticament"),
-                    html.Li("Els paràmetres microbiològics haurien de ser propers a zero per a aigua potable")
+                    html.Li("Assegura't que les mesures siguin precises i revisa les dades abans d'enviar-les."),
+                    html.Li("Els camps marcats amb * són obligatoris."),
+                    html.Li("Has d'introduir almenys un paràmetre per poder enviar la mostra."),
+                    html.Li("El clor combinat i la suma d'àcids haloacètics es calcula automàticament."),
+                    html.Li("Els paràmetres que estiguin per sota del límit de detecció s'han d'introduir com a 0."),
+                    html.Li("Després d'enviar la mostra, aquesta serà revisada i validada per un administrador abans de ser publicada.")
                 ], style={'fontSize': '1rem', 'lineHeight': '1.6', 'color': '#34495e'})
             ], style={
                 'backgroundColor': 'white', 
@@ -142,7 +142,7 @@ def create_submit_page():
             create_section("Paràmetres microbiològics", [
                 create_input_field("recompte-escherichia-coli", "E. coli (NPM/100 ml)", placeholder="ex. 0", min_val=0, step=0.01),
                 create_input_field("recompte-enterococ", "Enterococ (NPM/100 ml)", placeholder="ex. 0", min_val=0, step=0.01),
-                create_input_field("recompte-microorganismes-aerobis-22c", "Microorganismes aeròbics a 22°C (ufc/1 ml)", placeholder="ex. 100", min_val=0, step=1),
+                create_input_field("recompte-microorganismes-aerobis-22c", "Microorganismes aeròbis a 22°C (ufc/1 ml)", placeholder="ex. 100", min_val=0, step=1),
                 create_input_field("recompte-coliformes-totals", "Coliformes totals (NMP/100 ml)", placeholder="ex. 0", min_val=0, step=0.01)
             ]),
             
