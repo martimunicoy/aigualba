@@ -151,13 +151,13 @@ def create_home_page():
         html.Div([
             html.Div([
                 html.Div([
-                    html.H3("Què monitoritgem?", style={
+                    html.H3("Què monitoritzem?", style={
                         'color': '#2c3e50',
                         'fontSize': '1.8rem',
                         'marginBottom': '1rem',
                         'textAlign': 'center'
                     }),
-                    html.P("Seguim els paràmetres clau de la qualitat de l'aigua per garantir un subministrament segur i de qualitat.", style={
+                    html.P("Seguim els paràmetres més importants, segons la legalitat vigent, per garantir un subministrament d'aigua segur i de qualitat.", style={
                         'fontSize': '1rem',
                         'color': '#7f8c8d',
                         'textAlign': 'center',
@@ -185,13 +185,13 @@ def create_home_page():
                 }),
                 
                 html.Div([
-                    html.H3("Com participar?", style={
+                    html.H3("Què oferim?", style={
                         'color': '#2c3e50',
                         'fontSize': '1.8rem',
                         'marginBottom': '1rem',
                         'textAlign': 'center'
                     }),
-                    html.P("La participació ciutadana és clau per mantenir un control exhaustiu de la qualitat de l'aigua.", style={
+                    html.P("Una plataforma per facilitar l'actualització, accés i control de l'aigua municipal de Gualba.", style={
                         'fontSize': '1rem',
                         'color': '#7f8c8d',
                         'textAlign': 'center',
@@ -262,7 +262,7 @@ def create_home_page():
                 'padding': '0 2rem'
             }),
             
-            dcc.Interval(id='interval-home', interval=30*1000, n_intervals=0),
+
             dcc.Store(id='current-sample-id', data=None),
             dcc.Store(id='selected-location', data=None),
             html.Div(id='live-parameters', style={

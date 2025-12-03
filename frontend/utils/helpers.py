@@ -394,12 +394,18 @@ def create_parameter_card(parameter):
         ], className='parameter-info')
     ], className='parameter-card')
 
-def create_latest_sample_summary(sample):
-    """Create a summary card for the latest sample from Gualba"""
+def create_latest_sample_summary(sample, location_name=None):
+    """Create a summary card for the latest sample"""
+    # Determine location display text
+    if location_name and location_name != 'any_location':
+        location_text = f" de {location_name}"
+    else:
+        location_text = " de Gualba"
+    
     if not sample:
         return html.Div([
-            html.H3("Darrera mostra de Gualba", style={'color': '#2c3e50', 'marginBottom': '1rem'}),
-            html.P("No s'han trobat mostres recents de Gualba", 
+            html.H3(f"Darrera mostra{location_text}", style={'color': '#2c3e50', 'marginBottom': '1rem'}),
+            html.P(f"No s'han trobat mostres recents{location_text}", 
                   style={'color': '#6c757d', 'fontStyle': 'italic'})
         ], style={
             'backgroundColor': '#f8f9fa',
@@ -621,7 +627,7 @@ def create_latest_sample_summary(sample):
         })
     
     return html.Div([
-        html.H3("Darrera mostra de Gualba", 
+        html.H3(f"Darrera mostra{location_text}", 
                 style={'color': '#2c3e50', 'marginBottom': '1.5rem', 'textAlign': 'center'}),
         
         html.Div([

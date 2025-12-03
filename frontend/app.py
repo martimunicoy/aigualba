@@ -319,37 +319,23 @@ def populate_home_location_selector(n):
     [Output('live-parameters', 'children'),
      Output('current-sample-id', 'data'),
      Output('selected-location', 'data')],
-    [Input('interval-home', 'n_intervals'),
-     Input('home-location-selector', 'value')]
+    [Input('home-location-selector', 'value')]
 )
-def update_home_parameters(n, selected_location):
+def update_home_parameters(selected_location):
     # Fetch the latest sample based on selection
     if selected_location == 'any_location':
         latest_sample = fetch_latest_sample_any_location(BACKEND_URL)
-        location_display = ""
     elif selected_location:
         latest_sample = fetch_latest_sample_by_location(BACKEND_URL, selected_location)
-        location_display = f" de {selected_location}"
     else:
         # Fallback to any latest sample if no location selected
         latest_sample = fetch_latest_sample_any_location(BACKEND_URL)
-        location_display = ""
     
     if latest_sample:
         sample_id = latest_sample.get('id')
-        return create_latest_sample_summary(latest_sample), sample_id, selected_location
+        return create_latest_sample_summary(latest_sample, selected_location), sample_id, selected_location
     else:
-        return html.Div([
-            html.H3(f"Darrera mostra{location_display}", style={'color': '#2c3e50', 'marginBottom': '1rem'}),
-            html.P(f"No s'han trobat mostres recents{location_display}", 
-                  style={'color': '#6c757d', 'fontStyle': 'italic'})
-        ], style={
-            'backgroundColor': '#f8f9fa',
-            'padding': '2rem',
-            'borderRadius': '10px',
-            'border': '1px solid #dee2e6',
-            'textAlign': 'center'
-        }), None, selected_location
+        return create_latest_sample_summary(None, selected_location), None, selected_location
 
 # Callback for home page sample details button
 @app.callback(
