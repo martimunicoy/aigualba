@@ -157,7 +157,7 @@ def create_home_page():
                         'marginBottom': '1rem',
                         'textAlign': 'center'
                     }),
-                    html.P("Seguim els paràmetres més importants, segons la legalitat vigent, per garantir un subministrament d'aigua segur i de qualitat.", style={
+                    html.P("Seguim els paràmetres més importants, segons la legalitat vigent, per garantir un subministrament d'aigua de qualitat.", style={
                         'fontSize': '1rem',
                         'color': '#7f8c8d',
                         'textAlign': 'center',
