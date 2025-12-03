@@ -9,8 +9,6 @@ def create_input_field(field_id, label_text, field_type="number", placeholder=""
         'type': field_type,
         'placeholder': placeholder,
         'autoComplete': 'off',  # Disable autocomplete/autofill
-        'autoCorrect': 'off',   # Disable autocorrect on iOS
-        'autoCapitalize': 'off', # Disable auto-capitalization on iOS
         'spellCheck': False,    # Disable spellcheck
         'style': {
             'fontSize': '1rem', 
