@@ -262,8 +262,6 @@ def create_home_page():
                 'padding': '0 2rem'
             }),
             
-            # Interval component to trigger location loading
-            dcc.Interval(id='interval-home', interval=30*1000, n_intervals=0),
             dcc.Store(id='current-sample-id', data=None),
             dcc.Store(id='selected-location', data=None),
             html.Div(id='live-parameters', style={

@@ -300,9 +300,9 @@ def display_page(pathname, search):
 @app.callback(
     [Output('home-location-selector', 'options'),
      Output('home-location-selector', 'value')],
-    [Input('interval-home', 'n_intervals')]
+    [Input('home-location-selector', 'id')]
 )
-def populate_home_location_selector(n):
+def populate_home_location_selector(trigger):
     data = fetch_samples(BACKEND_URL)
     locations = get_unique_locations(data)
     
