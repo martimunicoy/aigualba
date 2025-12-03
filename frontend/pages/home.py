@@ -38,7 +38,7 @@ def create_home_page():
                             'fontWeight': '300',
                             'textAlign': 'center',
                             'color': 'white',
-                            'textShadow': '2px 2px 4px rgba(0,0,0,0.7)'
+                            'textShadow': '2px 2px 5px rgba(0,0,0,0.9)'
                         }),
                 
                 # Logo
@@ -66,7 +66,7 @@ def create_home_page():
                            'maxWidth': '800px',
                            'margin': '0 auto 2rem auto',
                            'color': 'white',
-                           'textShadow': '1px 1px 2px rgba(0,0,0,0.7)'
+                           'textShadow': '2px 2px 5px rgba(0,0,0,0.9)'
                        }),
                 
                 # Buttons
@@ -113,7 +113,7 @@ def create_home_page():
                 'maxWidth': '1200px',
                 'height': '500px',
                 'borderRadius': '10px',
-                'background': 'rgba(0,0,0,0.3)'  # Dark overlay for better text readability
+                'background': 'rgba(255,255,255,0.15)'  # White overlay for better text readability
             }),
             
             # Photo credit - positioned over the image
