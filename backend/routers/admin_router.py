@@ -522,29 +522,3 @@ def get_visits_statistics(
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     finally:
         connection.close()
-
-@router.post("/visits")
-def track_visit(
-    visit_data: Dict[str, Any]
-):
-    """Track a page visit (no authentication required for tracking)"""
-    connection = get_db_connection()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                INSERT INTO visits (page, user_agent, ip_address) 
-                VALUES (%s, %s, %s)
-            """, (
-                visit_data.get('page', 'unknown'),
-                visit_data.get('user_agent', ''),
-                visit_data.get('ip_address', '')
-            ))
-            
-            connection.commit()
-            return {"message": "Visit tracked successfully"}
-            
-    except psycopg2.Error as e:
-        connection.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-    finally:
-        connection.close()

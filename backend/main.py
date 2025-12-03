@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import parameters_router, samples_router
+from routers import parameters_router, samples_router, public_router
 from routers.admin_router import router as admin_router
 
 app = FastAPI(
@@ -22,6 +22,7 @@ app.add_middleware(
 # Include routers
 app.include_router(parameters_router)
 app.include_router(samples_router)
+app.include_router(public_router)
 app.include_router(admin_router)
 
 

@@ -29,53 +29,6 @@ from utils.helpers import (get_backend_url, fetch_parameters, create_parameter_c
 # Get backend URL
 BACKEND_URL = get_backend_url()
 
-def track_visit(page_name, request=None):
-    """Track a visit to a page with unique IP tracking"""
-    try:
-        # Get IP address and user agent
-        ip_address = ''
-        user_agent = ''
-        
-        # Since we're in a Dash callback context, try to access Flask request
-        try:
-            # Access the underlying Flask app request context
-            from dash import ctx
-            if hasattr(ctx, 'request') and ctx.request:
-                # Try to get real IP considering proxy headers
-                headers = getattr(ctx.request, 'headers', {})
-                environ = getattr(ctx.request, 'environ', {})
-                
-                # Check for forwarded IP headers first (from nginx proxy)
-                x_forwarded = headers.get('X-Forwarded-For', '')
-                x_real = headers.get('X-Real-IP', '')
-                remote_addr = environ.get('REMOTE_ADDR', '')
-                
-                if x_forwarded:
-                    ip_address = x_forwarded.split(',')[0].strip()
-                elif x_real:
-                    ip_address = x_real
-                else:
-                    ip_address = remote_addr
-                    
-                user_agent = headers.get('User-Agent', '')
-        except Exception:
-            # If we can't get request context, generate a session-based identifier
-            # This ensures some level of uniqueness for tracking
-            pass
-            
-        visit_data = {
-            'page': page_name,
-            'user_agent': user_agent,
-            'ip_address': ip_address or 'unknown'  # Ensure we have some identifier
-        }
-        
-        response = requests.post(f"{BACKEND_URL}/api/admin/visits", json=visit_data, timeout=5)
-        if response.status_code == 200:
-            print(f"Visit tracked: {page_name} from {ip_address or 'unknown IP'}")
-        else:
-            print(f"Failed to track visit: {response.status_code}")
-    except Exception as e:
-        print(f"Error tracking visit: {e}")
 
 def create_sample_detail_page(sample_id, referrer="/browse"):
     """Create a sample detail page for a specific sample ID"""
@@ -203,6 +156,120 @@ app.index_string = '''
         <link rel="icon" type="image/x-icon" sizes="128x128" href="/assets/favicon/favicon_128.ico">
         <link rel="icon" type="image/x-icon" sizes="256x256" href="/assets/favicon/favicon_256.ico">
         <link rel="manifest" href="/assets/favicon/site.webmanifest">
+        <script>
+            // Function to detect real client IP using external services
+            async function detectRealIP() {
+                const storedIP = sessionStorage.getItem('realClientIP');
+                if (storedIP && storedIP !== 'pending') {
+                    return storedIP; // Already detected
+                }
+                
+                // Try multiple IP detection services (CORS-friendly)
+                const ipServices = [
+                    { url: 'https://api.ipify.org?format=json', parser: data => data.ip, name: 'ipify' },
+                    { url: 'https://api64.ipify.org?format=json', parser: data => data.ip, name: 'ipify64' },
+                    { url: 'https://ipinfo.io/json', parser: data => data.ip, name: 'ipinfo' },
+                    { url: 'https://api.myip.com', parser: data => data.ip, name: 'myip' }
+                ];
+                
+                for (const service of ipServices) {
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => {
+                            controller.abort();
+                        }, 8000);
+                        
+                        const response = await fetch(service.url, { 
+                            signal: controller.signal,
+                            mode: 'cors',
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+                        clearTimeout(timeoutId);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        
+                        const data = await response.json();
+                        const ip = service.parser(data);
+                        
+                        if (ip && ip !== 'pending' && ip.trim() !== '' && ip !== 'undefined') {
+                            sessionStorage.setItem('realClientIP', ip);
+                            
+                            // Track visit with real IP
+                            try {
+                                await trackVisitWithRealIP(ip);
+                            } catch (error) {
+                                // Fallback: still return the IP even if tracking fails
+                            }
+                            
+                            return ip;
+                        }
+                    } catch (e) {
+                        // IP service failed, try next one
+                    }
+                }
+                
+                return null;
+            }
+            
+            async function trackVisitWithRealIP(realIP) {
+                try {
+                    // Get current page from URL
+                    const pathname = window.location.pathname;
+                    let pageName = 'home';
+                    
+                    if (pathname === '/' || pathname === '') {
+                        pageName = 'home';
+                    } else if (pathname === '/about') {
+                        pageName = 'about';
+                    } else if (pathname === '/browse') {
+                        pageName = 'browse';
+                    } else if (pathname === '/visualize') {
+                        pageName = 'visualize';
+                    } else if (pathname === '/submit') {
+                        pageName = 'submit';
+                    } else if (pathname === '/admin') {
+                        pageName = 'admin';
+                    } else if (pathname.startsWith('/sample/')) {
+                        pageName = 'sample_detail';
+                    }
+                    
+                    const visitData = {
+                        page: pageName,
+                        user_agent: navigator.userAgent || '',
+                        ip_address: realIP
+                    };
+                    
+                    const response = await fetch('/api/public/visits', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(visitData)
+                    });
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+                    }
+                    
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    throw error;
+                }
+            }
+            
+            // Make functions available globally
+            window.detectRealIP = detectRealIP;
+            window.trackVisitWithRealIP = trackVisitWithRealIP;
+            
+            // Detect IP when page loads
+            document.addEventListener('DOMContentLoaded', detectRealIP);
+        </script>
     </head>
     <body>
         {%app_entry%}
@@ -219,12 +286,73 @@ app.index_string = '''
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     create_navbar(),
-    html.Div(id='page-content')
+    html.Div(id='page-content'),
+    # Hidden div for IP detection
+    html.Div(id='ip-detector', style={'display': 'none'}),
+    dcc.Store(id='client-ip-store')
 ], style={'fontFamily': 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', 'margin': '0', 'padding': '0', 'backgroundColor': '#f5f5f5'})
 
 # Enable URL routing
 app.title = "Aigualba - Qualitat de l'aigua"
 app.config.suppress_callback_exceptions = True
+
+# Clientside callback for IP detection
+app.clientside_callback(
+    """
+    function(pathname) {
+        // Only run on page load/change
+        if (!pathname) return window.dash_clientside.no_update;
+        
+        // Check if we already have the real IP
+        const storedIP = sessionStorage.getItem('realClientIP');
+        if (storedIP && storedIP !== 'pending') {
+            // Always track since we want to record each visit
+            setTimeout(() => {
+                if (typeof window.trackVisitWithRealIP === 'function') {
+                    window.trackVisitWithRealIP(storedIP).then(() => {
+                        // Visit tracking completed
+                    }).catch(error => {
+                        // Visit tracking failed
+                    });
+                }
+            }, 100);
+            
+            return storedIP;
+        }
+        
+        // Trigger IP detection immediately and with retries
+        const triggerDetection = async () => {
+            if (typeof window.detectRealIP === 'function') {
+                try {
+                    await window.detectRealIP();
+                } catch (error) {
+                    // IP detection failed
+                }
+            } else {
+                setTimeout(triggerDetection, 500);
+            }
+        };
+        
+        // Try immediately
+        setTimeout(triggerDetection, 100);
+        
+        // Also try after a delay as backup
+        setTimeout(triggerDetection, 2000);
+        
+        // And one more retry after 5 seconds if needed
+        setTimeout(() => {
+            const storedIP = sessionStorage.getItem('realClientIP');
+            if (!storedIP || storedIP === 'pending') {
+                triggerDetection();
+            }
+        }, 5000);
+        
+        return 'pending';
+    }
+    """,
+    Output('client-ip-store', 'data'),
+    Input('url', 'pathname')
+)
 
 # Callback for URL routing
 @app.callback(Output('page-content', 'children'),
@@ -232,19 +360,14 @@ app.config.suppress_callback_exceptions = True
 def display_page(pathname, search):
     # Track page visits
     if pathname == '/about':
-        track_visit('about')
         return create_about_page()
     elif pathname == '/browse':
-        track_visit('browse')
         return create_browse_page()
     elif pathname == '/visualize':
-        track_visit('visualize')
         return create_visualize_page()
     elif pathname == '/submit':
-        track_visit('submit')
         return create_submit_page()
     elif pathname == '/admin':
-        track_visit('admin')
         return admin_layout
     elif pathname and pathname.startswith('/sample/'):
         # Handle direct sample detail pages like /sample/123
@@ -293,7 +416,6 @@ def display_page(pathname, search):
                 html.A("Return to browse", href="/browse")
             ])
     else:
-        track_visit('home')
         return create_home_page()
 
 # Callback to populate home location selector
