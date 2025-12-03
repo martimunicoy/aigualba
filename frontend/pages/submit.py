@@ -8,8 +8,9 @@ def create_input_field(field_id, label_text, field_type="number", placeholder=""
         'id': field_id,
         'type': field_type,
         'placeholder': placeholder,
-        'autoComplete': 'off',  # Disable autocomplete/autofill
-        'spellCheck': False,    # Disable spellcheck
+        'autoComplete': 'off',  # Strong signal to disable all autocomplete
+        'spellCheck': False,             # Disable spellcheck
+        'name': f'water_sample_{field_id}_measurement',  # Very specific water-related name
         'style': {
             'fontSize': '1rem', 
             'padding': '8px', 
