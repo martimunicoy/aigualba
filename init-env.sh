@@ -191,6 +191,12 @@ EOF
 echo -e "${GREEN}✅ Keycloak database password update script created${NC}"
 echo
 
+# Clean up existing volumes to ensure fresh database initialization
+echo -e "${YELLOW}🧹 Cleaning up existing volumes for fresh database initialization...${NC}"
+docker-compose down -v 2>/dev/null || true
+echo -e "${GREEN}✅ Volumes cleaned up${NC}"
+echo
+
 # Display configuration summary
 echo -e "${BLUE}📋 Configuration Summary${NC}"
 echo "========================"
